@@ -1,0 +1,20 @@
+.DS_Store
+example.tf
+terraform.tfplan
+terraform.tfstate
+bin/
+dist/
+*.backup
+./*.tfstate
+.terraform/
+*.log
+*.bak
+*~
+.*.swp
+*.iml
+*.test
+*.iml
+
+# Test exclusions
+!command/test-fixtures/**/*.tfstate
+!command/test-fixtures/**/.terraform/
