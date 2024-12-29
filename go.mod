@@ -1,4 +1,4 @@
-module github.com/veksh/terraform-provider-godaddy-dns
+module github.com/kevynb/terraform-provider-technitium-dns
 
 go 1.21
 

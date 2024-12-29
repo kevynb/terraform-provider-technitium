@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strings"
 	"sync"
 
@@ -12,14 +11,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/pkg/errors"
-	"github.com/veksh/terraform-provider-godaddy-dns/internal/model"
+	"github.com/kevynb/terraform-provider-technitium-dns/internal/model"
 )
 
 // import separator
@@ -33,34 +30,69 @@ var (
 )
 
 type tfDNSRecord struct {
-	Domain   types.String `tfsdk:"domain"`
-	Type     types.String `tfsdk:"type"`
-	Name     types.String `tfsdk:"name"`
-	Data     types.String `tfsdk:"data"`
-	TTL      types.Int64  `tfsdk:"ttl"`
-	Priority types.Int64  `tfsdk:"priority"`
-}
-
-// add record fields to context; export TF_LOG=debug to view
-func setLogCtx(ctx context.Context, tfRec tfDNSRecord, op string) context.Context {
-	ctx = tflog.SetField(ctx, "domain", tfRec.Domain.ValueString())
-	ctx = tflog.SetField(ctx, "type", tfRec.Type.ValueString())
-	ctx = tflog.SetField(ctx, "name", tfRec.Name.ValueString())
-	ctx = tflog.SetField(ctx, "data", tfRec.Data.ValueString())
-	ctx = tflog.SetField(ctx, "operation", op)
-	return ctx
-}
-
-// convert from terraform data model into api data model
-func tf2model(tfData tfDNSRecord) (model.DNSDomain, model.DNSRecord) {
-	return model.DNSDomain(tfData.Domain.ValueString()),
-		model.DNSRecord{
-			Name:     model.DNSRecordName(tfData.Name.ValueString()),
-			Type:     model.DNSRecordType(tfData.Type.ValueString()),
-			Data:     model.DNSRecordData(tfData.Data.ValueString()),
-			TTL:      model.DNSRecordTTL(tfData.TTL.ValueInt64()),
-			Priority: model.DNSRecordPrio(tfData.Priority.ValueInt64()),
-		}
+	Type                           types.String `tfsdk:"type"`
+	Domain                         types.String `tfsdk:"domain"`
+	TTL                            types.Int64  `tfsdk:"ttl"`
+	Comments                       types.String `tfsdk:"comments"`
+	IPAddress                      types.String `tfsdk:"ip_address"`
+	Ptr                            types.Bool   `tfsdk:"ptr"`
+	CreatePtrZone                  types.Bool   `tfsdk:"create_ptr_zone"`
+	UpdateSvcbHints                types.Bool   `tfsdk:"update_svcb_hints"`
+	NameServer                     types.String `tfsdk:"name_server"`
+	Glue                           types.String `tfsdk:"glue"`
+	CName                          types.String `tfsdk:"cname"`
+	PtrName                        types.String `tfsdk:"ptr_name"`
+	Exchange                       types.String `tfsdk:"exchange"`
+	Preference                     types.Int64  `tfsdk:"preference"`
+	Text                           types.String `tfsdk:"text"`
+	SplitText                      types.Bool   `tfsdk:"split_text"`
+	Mailbox                        types.String `tfsdk:"mailbox"`
+	TxtDomain                      types.String `tfsdk:"txt_domain"`
+	Priority                       types.Int64  `tfsdk:"priority"`
+	Weight                         types.Int64  `tfsdk:"weight"`
+	Port                           types.Int64  `tfsdk:"port"`
+	Target                         types.String `tfsdk:"target"`
+	NaptrOrder                     types.Int64  `tfsdk:"naptr_order"`
+	NaptrPreference                types.Int64  `tfsdk:"naptr_preference"`
+	NaptrFlags                     types.String `tfsdk:"naptr_flags"`
+	NaptrServices                  types.String `tfsdk:"naptr_services"`
+	NaptrRegexp                    types.String `tfsdk:"naptr_regexp"`
+	NaptrReplacement               types.String `tfsdk:"naptr_replacement"`
+	DName                          types.String `tfsdk:"dname"`
+	KeyTag                         types.Int64  `tfsdk:"key_tag"`
+	Algorithm                      types.String `tfsdk:"algorithm"`
+	DigestType                     types.String `tfsdk:"digest_type"`
+	Digest                         types.String `tfsdk:"digest"`
+	SshfpAlgorithm                 types.String `tfsdk:"sshfp_algorithm"`
+	SshfpFingerprintType           types.String `tfsdk:"sshfp_fingerprint_type"`
+	SshfpFingerprint               types.String `tfsdk:"sshfp_fingerprint"`
+	TlsaCertificateUsage           types.String `tfsdk:"tlsa_certificate_usage"`
+	TlsaSelector                   types.String `tfsdk:"tlsa_selector"`
+	TlsaMatchingType               types.String `tfsdk:"tlsa_matching_type"`
+	TlsaCertificateAssociationData types.String `tfsdk:"tlsa_certificate_association_data"`
+	SvcPriority                    types.Int64  `tfsdk:"svc_priority"`
+	SvcTargetName                  types.String `tfsdk:"svc_target_name"`
+	SvcParams                      types.String `tfsdk:"svc_params"`
+	AutoIpv4Hint                   types.Bool   `tfsdk:"auto_ipv4_hint"`
+	AutoIpv6Hint                   types.Bool   `tfsdk:"auto_ipv6_hint"`
+	UriPriority                    types.Int64  `tfsdk:"uri_priority"`
+	UriWeight                      types.Int64  `tfsdk:"uri_weight"`
+	Uri                            types.String `tfsdk:"uri"`
+	Flags                          types.String `tfsdk:"flags"`
+	Tag                            types.String `tfsdk:"tag"`
+	Value                          types.String `tfsdk:"value"`
+	AName                          types.String `tfsdk:"aname"`
+	Forwarder                      types.String `tfsdk:"forwarder"`
+	ForwarderPriority              types.Int64  `tfsdk:"forwarder_priority"`
+	DnssecValidation               types.Bool   `tfsdk:"dnssec_validation"`
+	ProxyType                      types.String `tfsdk:"proxy_type"`
+	ProxyAddress                   types.String `tfsdk:"proxy_address"`
+	ProxyPort                      types.Int64  `tfsdk:"proxy_port"`
+	ProxyUsername                  types.String `tfsdk:"proxy_username"`
+	ProxyPassword                  types.String `tfsdk:"proxy_password"`
+	AppName                        types.String `tfsdk:"app_name"`
+	ClassPath                      types.String `tfsdk:"class_path"`
+	RecordData                     types.String `tfsdk:"record_data"`
 }
 
 // RecordResource defines the implementation of GoDaddy DNS RR
@@ -81,65 +113,272 @@ func (r *RecordResource) Metadata(ctx context.Context, req resource.MetadataRequ
 
 func (r *RecordResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "DNS resource record represens a single RR in managed domain",
+		MarkdownDescription: "Manages a DNS record in Technitium DNS Server.",
 		Attributes: map[string]schema.Attribute{
-			"domain": schema.StringAttribute{
-				MarkdownDescription: "Name of main managed domain (top-level) for this RR",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "Resource record type: A, CNAME etc",
+				MarkdownDescription: "The DNS record type (e.g., A, AAAA, CNAME, etc.).",
 				Required:            true,
 				Validators: []validator.String{
-					// TODO: SRV management
-					// TODO: custom validator to require "priority" for type == MX
-					stringvalidator.Any(
-						// attempt to require priority only for MX: error message is not quite clear :)
-						stringvalidator.OneOf([]string{"A", "AAAA", "CNAME", "NS", "TXT"}...),
-						stringvalidator.All(
-							// mx requires priority
-							stringvalidator.OneOf([]string{"MX"}...),
-							stringvalidator.AlsoRequires(path.Expressions{
-								path.MatchRoot("priority"),
-							}...),
-						),
-					),
+					stringvalidator.OneOf("A", "AAAA", "CNAME", "MX", "NS", "SOA", "SRV", "TXT", "PTR", "NAPTR", "DNAME", "DS", "SSHFP", "TLSA", "SVCB", "HTTPS", "URI", "CAA", "ANAME", "FWD", "APP"),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"name": schema.StringAttribute{
-				MarkdownDescription: "Record name name (part of FQN), may include `.` for records in sub-domains or be `@` for top-level records",
+			"domain": schema.StringAttribute{
+				MarkdownDescription: "The domain name for the DNS record (FQN)",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
-			},
-			"data": schema.StringAttribute{
-				MarkdownDescription: "Record value returned for DNS query: target for CNAME, ip address for A etc",
-				Required:            true,
 			},
 			"ttl": schema.Int64Attribute{
-				MarkdownDescription: "Record time-to-live, >= 600s <= 604800s (1 week), default 3600 seconds (1 hour)",
-				Optional:            true,
-				Computed:            true, // must be computed to use a default
-				Default:             int64default.StaticInt64(3600),
+				MarkdownDescription: "The time-to-live (TTL) of the DNS record, in seconds.",
+				Required:            true,
 				Validators: []validator.Int64{
-					int64validator.AtLeast(600),
-					int64validator.AtMost(604800),
+					int64validator.Between(0, 604800),
 				},
 			},
-			"priority": schema.Int64Attribute{
-				MarkdownDescription: "Record priority, required for MX (lower is higher)",
+			"comments": schema.StringAttribute{
+				MarkdownDescription: "Optional comments for the DNS record.",
 				Optional:            true,
-				Validators: []validator.Int64{
-					int64validator.AtLeast(0),
-					int64validator.AtMost(1023),
-				},
+			},
+			"ip_address": schema.StringAttribute{
+				MarkdownDescription: "The IP address for A or AAAA records.",
+				Optional:            true,
+			},
+			"ptr": schema.BoolAttribute{
+				MarkdownDescription: "Specifies if this record should create a PTR record for A/AAAA types.",
+				Optional:            true,
+			},
+			"create_ptr_zone": schema.BoolAttribute{
+				MarkdownDescription: "Specifies if the PTR zone should be automatically created for A/AAAA records.",
+				Optional:            true,
+			},
+			"update_svcb_hints": schema.BoolAttribute{
+				MarkdownDescription: "Whether to update SVCB hints for this record.",
+				Optional:            true,
+			},
+			"name_server": schema.StringAttribute{
+				MarkdownDescription: "The name server for NS records.",
+				Optional:            true,
+			},
+			"glue": schema.StringAttribute{
+				MarkdownDescription: "The glue record for NS records.",
+				Optional:            true,
+			},
+			"cname": schema.StringAttribute{
+				MarkdownDescription: "The canonical name for CNAME records.",
+				Optional:            true,
+			},
+			"ptr_name": schema.StringAttribute{
+				MarkdownDescription: "The PTR name for PTR records.",
+				Optional:            true,
+			},
+			"exchange": schema.StringAttribute{
+				MarkdownDescription: "The exchange server for MX records.",
+				Optional:            true,
+			},
+			"preference": schema.Int64Attribute{
+				MarkdownDescription: "The priority for MX records.",
+				Optional:            true,
+			},
+			"text": schema.StringAttribute{
+				MarkdownDescription: "The text value for TXT records.",
+				Optional:            true,
+			},
+			"split_text": schema.BoolAttribute{
+				MarkdownDescription: "Whether to split TXT record text into multiple character strings.",
+				Optional:            true,
+			},
+			"mailbox": schema.StringAttribute{
+				MarkdownDescription: "The mailbox for RP records.",
+				Optional:            true,
+			},
+			"txt_domain": schema.StringAttribute{
+				MarkdownDescription: "The TXT domain for RP records.",
+				Optional:            true,
+			},
+			"priority": schema.Int64Attribute{
+				MarkdownDescription: "The priority for SRV records.",
+				Optional:            true,
+			},
+			"weight": schema.Int64Attribute{
+				MarkdownDescription: "The weight for SRV records.",
+				Optional:            true,
+			},
+			"port": schema.Int64Attribute{
+				MarkdownDescription: "The port for SRV records.",
+				Optional:            true,
+			},
+			"target": schema.StringAttribute{
+				MarkdownDescription: "The target for SRV records.",
+				Optional:            true,
+			},
+			"naptr_order": schema.Int64Attribute{
+				MarkdownDescription: "The order for NAPTR records.",
+				Optional:            true,
+			},
+			"naptr_preference": schema.Int64Attribute{
+				MarkdownDescription: "The preference for NAPTR records.",
+				Optional:            true,
+			},
+			"naptr_flags": schema.StringAttribute{
+				MarkdownDescription: "The flags for NAPTR records.",
+				Optional:            true,
+			},
+			"naptr_services": schema.StringAttribute{
+				MarkdownDescription: "The services for NAPTR records.",
+				Optional:            true,
+			},
+			"naptr_regexp": schema.StringAttribute{
+				MarkdownDescription: "The regular expression for NAPTR records.",
+				Optional:            true,
+			},
+			"naptr_replacement": schema.StringAttribute{
+				MarkdownDescription: "The replacement field for NAPTR records.",
+				Optional:            true,
+			},
+			"dname": schema.StringAttribute{
+				MarkdownDescription: "The DNAME for DNAME records.",
+				Optional:            true,
+			},
+			"key_tag": schema.Int64Attribute{
+				MarkdownDescription: "The key tag for DS records.",
+				Optional:            true,
+			},
+			"algorithm": schema.StringAttribute{
+				MarkdownDescription: "The algorithm for DS records.",
+				Optional:            true,
+			},
+			"digest_type": schema.StringAttribute{
+				MarkdownDescription: "The digest type for DS records.",
+				Optional:            true,
+			},
+			"digest": schema.StringAttribute{
+				MarkdownDescription: "The digest for DS records.",
+				Optional:            true,
+			},
+			"sshfp_algorithm": schema.StringAttribute{
+				MarkdownDescription: "The SSHFP algorithm.",
+				Optional:            true,
+			},
+			"sshfp_fingerprint_type": schema.StringAttribute{
+				MarkdownDescription: "The SSHFP fingerprint type.",
+				Optional:            true,
+			},
+			"sshfp_fingerprint": schema.StringAttribute{
+				MarkdownDescription: "The SSHFP fingerprint.",
+				Optional:            true,
+			},
+			"tlsa_certificate_usage": schema.StringAttribute{
+				MarkdownDescription: "The TLSA certificate usage.",
+				Optional:            true,
+			},
+			"tlsa_selector": schema.StringAttribute{
+				MarkdownDescription: "The TLSA selector.",
+				Optional:            true,
+			},
+			"tlsa_matching_type": schema.StringAttribute{
+				MarkdownDescription: "The TLSA matching type.",
+				Optional:            true,
+			},
+			"tlsa_certificate_association_data": schema.StringAttribute{
+				MarkdownDescription: "The TLSA certificate association data.",
+				Optional:            true,
+			},
+			"svc_priority": schema.Int64Attribute{
+				MarkdownDescription: "The priority for SVCB/HTTPS records.",
+				Optional:            true,
+			},
+			"svc_target_name": schema.StringAttribute{
+				MarkdownDescription: "The target name for SVCB/HTTPS records.",
+				Optional:            true,
+			},
+			"svc_params": schema.StringAttribute{
+				MarkdownDescription: "The parameters for SVCB/HTTPS records.",
+				Optional:            true,
+			},
+			"auto_ipv4_hint": schema.BoolAttribute{
+				MarkdownDescription: "Whether to use automatic IPv4 hints for SVCB/HTTPS records.",
+				Optional:            true,
+			},
+			"auto_ipv6_hint": schema.BoolAttribute{
+				MarkdownDescription: "Whether to use automatic IPv6 hints for SVCB/HTTPS records.",
+				Optional:            true,
+			},
+			"uri_priority": schema.Int64Attribute{
+				MarkdownDescription: "The priority for URI records.",
+				Optional:            true,
+			},
+			"uri_weight": schema.Int64Attribute{
+				MarkdownDescription: "The weight for URI records.",
+				Optional:            true,
+			},
+			"uri": schema.StringAttribute{
+				MarkdownDescription: "The URI for URI records.",
+				Optional:            true,
+			},
+			"flags": schema.StringAttribute{
+				MarkdownDescription: "The flags for CAA records.",
+				Optional:            true,
+			},
+			"tag": schema.StringAttribute{
+				MarkdownDescription: "The tag for CAA records.",
+				Optional:            true,
+			},
+			"value": schema.StringAttribute{
+				MarkdownDescription: "The value for CAA records.",
+				Optional:            true,
+			},
+			"aname": schema.StringAttribute{
+				MarkdownDescription: "The ANAME value.",
+				Optional:            true,
+			},
+			"forwarder": schema.StringAttribute{
+				MarkdownDescription: "The forwarder address for FWD records.",
+				Optional:            true,
+			},
+			"forwarder_priority": schema.Int64Attribute{
+				MarkdownDescription: "The priority for FWD records.",
+				Optional:            true,
+			},
+			"dnssec_validation": schema.BoolAttribute{
+				MarkdownDescription: "Whether DNSSEC validation is enabled for FWD records.",
+				Optional:            true,
+			},
+			"proxy_type": schema.StringAttribute{
+				MarkdownDescription: "The proxy type for FWD records.",
+				Optional:            true,
+			},
+			"proxy_address": schema.StringAttribute{
+				MarkdownDescription: "The proxy address for FWD records.",
+				Optional:            true,
+			},
+			"proxy_port": schema.Int64Attribute{
+				MarkdownDescription: "The proxy port for FWD records.",
+				Optional:            true,
+			},
+			"proxy_username": schema.StringAttribute{
+				MarkdownDescription: "The proxy username for FWD records.",
+				Optional:            true,
+			},
+			"proxy_password": schema.StringAttribute{
+				MarkdownDescription: "The proxy password for FWD records.",
+				Optional:            true,
+				Sensitive:           true,
+			},
+			"app_name": schema.StringAttribute{
+				MarkdownDescription: "The app name for APP records.",
+				Optional:            true,
+			},
+			"class_path": schema.StringAttribute{
+				MarkdownDescription: "The class path for APP records.",
+				Optional:            true,
+			},
+			"record_data": schema.StringAttribute{
+				MarkdownDescription: "The record data for APP records.",
+				Optional:            true,
 			},
 		},
 	}
@@ -180,7 +419,7 @@ func (r *RecordResource) Create(ctx context.Context, req resource.CreateRequest,
 	r.reqMutex.Lock()
 	defer r.reqMutex.Unlock()
 
-	apiDomain, apiRecPlan := tf2model(planData)
+	apiRecPlan := tf2model(planData)
 	// "put"/"add" does not check prior state (terraform does not provide one for Create)
 	// and so will fail on uniqueness violation (e.g. if record already exists
 	// after external modification, or if it is the second CNAME RR etc)
@@ -188,7 +427,7 @@ func (r *RecordResource) Create(ctx context.Context, req resource.CreateRequest,
 	// - alt/TODO: read records and do noop if target record is already there
 	//   like `apiAllRecs, err := r.client.GetRecords(ctx, apiDomain, apiRecPlan.Type, apiRecPlan.Name)`
 	//   but lets not be silent about that
-	err := r.client.AddRecords(ctx, apiDomain, []model.DNSRecord{apiRecPlan})
+	err := r.client.AddRecord(ctx, apiRecPlan)
 
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error",
@@ -199,6 +438,7 @@ func (r *RecordResource) Create(ctx context.Context, req resource.CreateRequest,
 	resp.Diagnostics.Append(resp.State.Set(ctx, &planData)...)
 }
 
+// TODO(kbr): The read function might need some caching mechanism because it is currently refetching the full record list every time.
 func (r *RecordResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateData tfDNSRecord
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
@@ -212,20 +452,21 @@ func (r *RecordResource) Read(ctx context.Context, req resource.ReadRequest, res
 	r.reqMutex.Lock()
 	defer r.reqMutex.Unlock()
 
-	apiDomain, apiRecState := tf2model(stateData)
+	dnsRecordFromState := tf2model(stateData)
 
-	apiAllRecs, err := r.client.GetRecords(ctx, apiDomain, apiRecState.Type, apiRecState.Name)
+	allRecordsFromApi, err := r.client.GetRecords(ctx, dnsRecordFromState.Domain)
+
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error",
 			fmt.Sprintf("Reading DNS records: query failed: %s", err))
 		return
 	}
 	numFound := 0
-	if numRecs := len(apiAllRecs); numRecs == 0 {
+	if numberOfApiRecords := len(allRecordsFromApi); numberOfApiRecords == 0 {
 		tflog.Debug(ctx, "Reading DNS record: currently absent")
 	} else {
 		tflog.Info(ctx, fmt.Sprintf(
-			"Reading DNS record: got %d answers", numRecs))
+			"Reading DNS record: got %d answers", numberOfApiRecords))
 		// meaning of "match" is different between types
 		//  - for CNAME (and SOA), there could be only 1 records with a given name
 		//    in a (sub-)domain
@@ -235,19 +476,13 @@ func (r *RecordResource) Read(ctx context.Context, req resource.ReadRequest, res
 		//      preversion and replace it with one :)
 		//    - TXT and NS for same name could differ only in TTL
 		//  - for SRV PK is proto+service+port+data, value is weight+prio+ttl
-		for _, rec := range apiAllRecs {
-			tflog.Debug(ctx, fmt.Sprintf("Got DNS record: %v", rec))
-			if rec.SameKey(apiRecState) {
+		for _, dnsRecordFromApi := range allRecordsFromApi {
+			tflog.Debug(ctx, fmt.Sprintf("Got DNS record: %v", dnsRecordFromApi))
+			println("dnsRecordFromApi", dnsRecordFromApi.Domain, "dnsRecordFromState", dnsRecordFromState.Domain)
+			if dnsRecordFromApi.SameKey(dnsRecordFromState) {
 				tflog.Info(ctx, "matching DNS record found")
-				stateData.Data = types.StringValue(string(rec.Data))
-				stateData.TTL = types.Int64Value(int64(rec.TTL))
-				switch rec.Type {
-				case model.REC_MX:
-					stateData.Priority = types.Int64Value(int64(rec.Priority))
-				case model.REC_SRV:
-					stateData.Priority = types.Int64Value(int64(rec.Priority))
-					// TODO: weight
-				}
+				stateData = model2tf(dnsRecordFromApi)
+				tflog.Info(ctx, " AutoIpv6Hint value "+stateData.AutoIpv6Hint.String())
 				numFound += 1
 			}
 		}
@@ -269,13 +504,6 @@ func (r *RecordResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 }
 
-// updating will fail if resource is already changed externally: old record will be "gone"
-// after refresh, so actually "create" will be called for new one (and see above): i.e.
-// changing "A -> 1.1.1.1" to "A -> 2.2.2.2" first in domain and then in main.tf will
-// result in an error (refresh will mark it as gone and will try to create new)
-// so, do not do that :)
-// the way to settle things down in this case is "refresh" (will mark old as gone)
-// + "import" to new (so state will be ok)
 func (r *RecordResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var planData tfDNSRecord
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &planData)...)
@@ -289,61 +517,17 @@ func (r *RecordResource) Update(ctx context.Context, req resource.UpdateRequest,
 	r.reqMutex.Lock()
 	defer r.reqMutex.Unlock()
 
-	apiDomain, apiRecPlan := tf2model(planData)
+	dnsRecordFromPlan := tf2model(planData)
 
-	var err error
-	if apiRecPlan.Type.IsSingleValue() {
-		// for CNAME: just one record replacing another
-		err = r.client.SetRecords(ctx,
-			apiDomain, apiRecPlan.Type, apiRecPlan.Name,
-			[]model.DNSUpdateRecord{{
-				Data: apiRecPlan.Data,
-				TTL:  apiRecPlan.TTL,
-			}})
-	} else {
-		// for multi-valued records: copy all the rest except previous state
-		var stateData tfDNSRecord
-		var apiUpdateRecs []model.DNSUpdateRecord
-		resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		apiUpdateRecs, err = r.apiRecsToKeep(ctx, stateData)
-		if err != nil && err != errRecordGone {
-			resp.Diagnostics.AddError("Client Error",
-				fmt.Sprintf("Getting DNS records to keep failed: %s", err))
-			return
-		}
-		// lets try to detect the situation when old record is gone and new is present
-		// actually this should not happen (implicit "refresh" before "apply" will remove
-		// old record from the state), but who knows :)
-		oldGone := false
-		if err == errRecordGone {
-			tflog.Info(ctx, "Current record is already gone")
-			oldGone = true
-		}
-		tflog.Info(ctx, fmt.Sprintf("Got %d records to keep", len(apiUpdateRecs)))
-		// and finally, add our record (TODO: SRV has more fields)
-		ourRec := model.DNSUpdateRecord{
-			Data:     apiRecPlan.Data,
-			TTL:      apiRecPlan.TTL,
-			Priority: apiRecPlan.Priority,
-		}
-		newPresent := false
-		if slices.Index(apiUpdateRecs, ourRec) >= 0 {
-			// still need to delete old value if not gone
-			tflog.Info(ctx, "Updated record is already present")
-			newPresent = true
-		} else {
-			apiUpdateRecs = append(apiUpdateRecs, ourRec)
-		}
-		if oldGone && newPresent {
-			tflog.Info(ctx, "Nothing left to do")
-			err = nil
-		} else {
-			err = r.client.SetRecords(ctx, apiDomain, apiRecPlan.Type, apiRecPlan.Name, apiUpdateRecs)
-		}
+	var stateData tfDNSRecord
+	resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
+
+	dnsRecordFromState := tf2model(stateData)
+
+	err := r.client.UpdateRecord(ctx, dnsRecordFromState, dnsRecordFromPlan)
 
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error",
@@ -368,45 +552,14 @@ func (r *RecordResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	r.reqMutex.Lock()
 	defer r.reqMutex.Unlock()
 
-	apiDomain, apiRecState := tf2model(stateData)
+	dnsRecordFromState := tf2model(stateData)
 
-	if apiRecState.Type.IsSingleValue() {
-		// for single-value types, delete is ok; multi-valued have to be replaced
-		err := r.client.DelRecords(ctx, apiDomain, apiRecState.Type, apiRecState.Name)
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error",
-				fmt.Sprintf("Deleting DNS record failed: %s", err))
-			return
-		}
-	} else {
-		// for multi-valued records: copy all the rest except previous state
-		var stateData tfDNSRecord
-		resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		apiRecsToKeep, err := r.apiRecsToKeep(ctx, stateData)
-		if err != nil {
-			if err == errRecordGone {
-				tflog.Info(ctx, "DNS record already gone")
-				return
-			} else {
-				resp.Diagnostics.AddError("Client Error",
-					fmt.Sprintf("Getting DNS records to keep failed: %s", err))
-				return
-			}
-		}
-		tflog.Info(ctx, fmt.Sprintf("Got %d records to keep", len(apiRecsToKeep)))
-		if len(apiRecsToKeep) == 0 {
-			err = r.client.DelRecords(ctx, apiDomain, apiRecState.Type, apiRecState.Name)
-		} else {
-			err = r.client.SetRecords(ctx, apiDomain, apiRecState.Type, apiRecState.Name, apiRecsToKeep)
-		}
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error",
-				fmt.Sprintf("Replacing DNS records failed: %s", err))
-			return
-		}
+	// for single-value types, delete is ok; multi-valued have to be replaced
+	err := r.client.DelRecord(ctx, dnsRecordFromState)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error",
+			fmt.Sprintf("Deleting DNS record failed: %s", err))
+		return
 	}
 }
 
@@ -435,49 +588,345 @@ func (r *RecordResource) ImportState(ctx context.Context, req resource.ImportSta
 	}
 }
 
-var errRecordGone = errors.New("record already gone")
-
-// get all records for type + name, return all of them except the record
-// matching stateData (it will be deleted or updated), converted to update
-// format (without type and name); these are intended to be kept unchanged
-// during update/delete ops on target record
-func (r *RecordResource) apiRecsToKeep(ctx context.Context, stateData tfDNSRecord) ([]model.DNSUpdateRecord, error) {
-	// records may differ in data or value; should be present in current API reply
-
-	ctx = tflog.SetField(ctx, "operation", "read-keep")
-	tflog.Info(ctx, "recs-to-keep: start")
-	defer tflog.Info(ctx, "recs-to-keep: end")
-
-	res := []model.DNSUpdateRecord{}
-	matchesWithState := 0
-	apiDomain, apiRecState := tf2model(stateData)
-	apiAllRecs, err := r.client.GetRecords(ctx, apiDomain, apiRecState.Type, apiRecState.Name)
-	if err != nil {
-		return res, errors.Wrap(err, "Client error: query failed")
+// add record fields to context; export TF_LOG=debug to view
+func setLogCtx(ctx context.Context, tfRec tfDNSRecord, op string) context.Context {
+	logAttributes := map[string]interface{}{
+		"operation":                         op,
+		"type":                              tfRec.Type.ValueString(),
+		"domain":                            tfRec.Domain.ValueString(),
+		"ttl":                               tfRec.TTL.ValueInt64(),
+		"comments":                          tfRec.Comments.ValueString(),
+		"ip_address":                        tfRec.IPAddress.ValueString(),
+		"ptr":                               tfRec.Ptr.ValueBool(),
+		"create_ptr_zone":                   tfRec.CreatePtrZone.ValueBool(),
+		"update_svcb_hints":                 tfRec.UpdateSvcbHints.ValueBool(),
+		"name_server":                       tfRec.NameServer.ValueString(),
+		"glue":                              tfRec.Glue.ValueString(),
+		"cname":                             tfRec.CName.ValueString(),
+		"ptr_name":                          tfRec.PtrName.ValueString(),
+		"exchange":                          tfRec.Exchange.ValueString(),
+		"preference":                        tfRec.Preference.ValueInt64(),
+		"text":                              tfRec.Text.ValueString(),
+		"split_text":                        tfRec.SplitText.ValueBool(),
+		"mailbox":                           tfRec.Mailbox.ValueString(),
+		"txt_domain":                        tfRec.TxtDomain.ValueString(),
+		"priority":                          tfRec.Priority.ValueInt64(),
+		"weight":                            tfRec.Weight.ValueInt64(),
+		"port":                              tfRec.Port.ValueInt64(),
+		"target":                            tfRec.Target.ValueString(),
+		"naptr_order":                       tfRec.NaptrOrder.ValueInt64(),
+		"naptr_preference":                  tfRec.NaptrPreference.ValueInt64(),
+		"naptr_flags":                       tfRec.NaptrFlags.ValueString(),
+		"naptr_services":                    tfRec.NaptrServices.ValueString(),
+		"naptr_regexp":                      tfRec.NaptrRegexp.ValueString(),
+		"naptr_replacement":                 tfRec.NaptrReplacement.ValueString(),
+		"dname":                             tfRec.DName.ValueString(),
+		"key_tag":                           tfRec.KeyTag.ValueInt64(),
+		"algorithm":                         tfRec.Algorithm.ValueString(),
+		"digest_type":                       tfRec.DigestType.ValueString(),
+		"digest":                            tfRec.Digest.ValueString(),
+		"sshfp_algorithm":                   tfRec.SshfpAlgorithm.ValueString(),
+		"sshfp_fingerprint_type":            tfRec.SshfpFingerprintType.ValueString(),
+		"sshfp_fingerprint":                 tfRec.SshfpFingerprint.ValueString(),
+		"tlsa_certificate_usage":            tfRec.TlsaCertificateUsage.ValueString(),
+		"tlsa_selector":                     tfRec.TlsaSelector.ValueString(),
+		"tlsa_matching_type":                tfRec.TlsaMatchingType.ValueString(),
+		"tlsa_certificate_association_data": tfRec.TlsaCertificateAssociationData.ValueString(),
+		"svc_priority":                      tfRec.SvcPriority.ValueInt64(),
+		"svc_target_name":                   tfRec.SvcTargetName.ValueString(),
+		"svc_params":                        tfRec.SvcParams.ValueString(),
+		"auto_ipv4_hint":                    tfRec.AutoIpv4Hint.ValueBool(),
+		"auto_ipv6_hint":                    tfRec.AutoIpv6Hint.ValueBool(),
+		"uri_priority":                      tfRec.UriPriority.ValueInt64(),
+		"uri_weight":                        tfRec.UriWeight.ValueInt64(),
+		"uri":                               tfRec.Uri.ValueString(),
+		"flags":                             tfRec.Flags.ValueString(),
+		"tag":                               tfRec.Tag.ValueString(),
+		"value":                             tfRec.Value.ValueString(),
+		"aname":                             tfRec.AName.ValueString(),
+		"forwarder":                         tfRec.Forwarder.ValueString(),
+		"forwarder_priority":                tfRec.ForwarderPriority.ValueInt64(),
+		"dnssec_validation":                 tfRec.DnssecValidation.ValueBool(),
+		"proxy_type":                        tfRec.ProxyType.ValueString(),
+		"proxy_address":                     tfRec.ProxyAddress.ValueString(),
+		"proxy_port":                        tfRec.ProxyPort.ValueInt64(),
+		"proxy_username":                    tfRec.ProxyUsername.ValueString(),
+		"proxy_password":                    tfRec.ProxyPassword.ValueString(),
+		"app_name":                          tfRec.AppName.ValueString(),
+		"class_path":                        tfRec.ClassPath.ValueString(),
+		"record_data":                       tfRec.RecordData.ValueString(),
 	}
-	if numRecs := len(apiAllRecs); numRecs == 0 {
-		// strange but quite ok for both delete (NOOP) and update (keep nothing)
-		tflog.Warn(ctx, "API returned no records, will continue")
-	} else {
-		tflog.Debug(ctx, fmt.Sprintf("Got %d answers from API", numRecs))
-		for _, rec := range apiAllRecs {
-			tflog.Debug(ctx,
-				fmt.Sprintf("Got DNS RR: data %s, prio %d, ttl %d", rec.Data, rec.Priority, rec.TTL))
-			if rec.SameKey(apiRecState) {
-				tflog.Debug(ctx, "Matching DNS record found")
-				matchesWithState += 1
-			} else {
-				// convert to update format
-				res = append(res, rec.ToUpdate())
-			}
+
+	for k, v := range logAttributes {
+		if v != nil && v != "" {
+			ctx = tflog.SetField(ctx, k, v)
 		}
-		tflog.Debug(ctx, fmt.Sprintf("Found %d records to keep", len(res)))
 	}
-	if matchesWithState != 1 {
-		tflog.Warn(ctx, fmt.Sprintf("Reading DNS records: want == 1 record, got %d", matchesWithState))
-		if matchesWithState == 0 {
-			return res, errRecordGone
-		}
+
+	return ctx
+}
+
+// convert from terraform data model into api data model
+func tf2model(tfData tfDNSRecord) model.DNSRecord {
+	return model.DNSRecord{
+		Type:                           model.DNSRecordType(tfData.Type.ValueString()),
+		Domain:                         model.DNSRecordName(tfData.Domain.ValueString()),
+		TTL:                            model.DNSRecordTTL(tfData.TTL.ValueInt64()),
+		Comments:                       tfData.Comments.ValueString(),
+		IPAddress:                      tfData.IPAddress.ValueString(),
+		Ptr:                            tfData.Ptr.ValueBool(),
+		CreatePtrZone:                  tfData.CreatePtrZone.ValueBool(),
+		UpdateSvcbHints:                tfData.UpdateSvcbHints.ValueBool(),
+		NameServer:                     tfData.NameServer.ValueString(),
+		Glue:                           tfData.Glue.ValueString(),
+		CName:                          tfData.CName.ValueString(),
+		PtrName:                        tfData.PtrName.ValueString(),
+		Exchange:                       tfData.Exchange.ValueString(),
+		Preference:                     model.DNSRecordPrio(tfData.Preference.ValueInt64()),
+		Text:                           tfData.Text.ValueString(),
+		SplitText:                      tfData.SplitText.ValueBool(),
+		Mailbox:                        tfData.Mailbox.ValueString(),
+		TxtDomain:                      tfData.TxtDomain.ValueString(),
+		Priority:                       model.DNSRecordPrio(tfData.Priority.ValueInt64()),
+		Weight:                         model.DNSRecordSRVWeight(tfData.Weight.ValueInt64()),
+		Port:                           model.DNSRecordSRVPort(tfData.Port.ValueInt64()),
+		Target:                         model.DNSRecordSRVService(tfData.Target.ValueString()),
+		NaptrOrder:                     uint16(tfData.NaptrOrder.ValueInt64()),
+		NaptrPreference:                uint16(tfData.NaptrPreference.ValueInt64()),
+		NaptrFlags:                     tfData.NaptrFlags.ValueString(),
+		NaptrServices:                  tfData.NaptrServices.ValueString(),
+		NaptrRegexp:                    tfData.NaptrRegexp.ValueString(),
+		NaptrReplacement:               tfData.NaptrReplacement.ValueString(),
+		DName:                          tfData.DName.ValueString(),
+		KeyTag:                         uint16(tfData.KeyTag.ValueInt64()),
+		Algorithm:                      tfData.Algorithm.ValueString(),
+		DigestType:                     tfData.DigestType.ValueString(),
+		Digest:                         tfData.Digest.ValueString(),
+		SshfpAlgorithm:                 tfData.SshfpAlgorithm.ValueString(),
+		SshfpFingerprintType:           tfData.SshfpFingerprintType.ValueString(),
+		SshfpFingerprint:               tfData.SshfpFingerprint.ValueString(),
+		TlsaCertificateUsage:           tfData.TlsaCertificateUsage.ValueString(),
+		TlsaSelector:                   tfData.TlsaSelector.ValueString(),
+		TlsaMatchingType:               tfData.TlsaMatchingType.ValueString(),
+		TlsaCertificateAssociationData: tfData.TlsaCertificateAssociationData.ValueString(),
+		SvcPriority:                    uint16(tfData.SvcPriority.ValueInt64()),
+		SvcTargetName:                  tfData.SvcTargetName.ValueString(),
+		SvcParams:                      tfData.SvcParams.ValueString(),
+		AutoIpv4Hint:                   tfData.AutoIpv4Hint.ValueBool(),
+		AutoIpv6Hint:                   tfData.AutoIpv6Hint.ValueBool(),
+		UriPriority:                    uint16(tfData.UriPriority.ValueInt64()),
+		UriWeight:                      uint16(tfData.UriWeight.ValueInt64()),
+		Uri:                            tfData.Uri.ValueString(),
+		Flags:                          tfData.Flags.ValueString(),
+		Tag:                            tfData.Tag.ValueString(),
+		Value:                          tfData.Value.ValueString(),
+		AName:                          tfData.AName.ValueString(),
+		Forwarder:                      tfData.Forwarder.ValueString(),
+		ForwarderPriority:              uint16(tfData.ForwarderPriority.ValueInt64()),
+		DnssecValidation:               tfData.DnssecValidation.ValueBool(),
+		ProxyType:                      tfData.ProxyType.ValueString(),
+		ProxyAddress:                   tfData.ProxyAddress.ValueString(),
+		ProxyPort:                      uint16(tfData.ProxyPort.ValueInt64()),
+		ProxyUsername:                  tfData.ProxyUsername.ValueString(),
+		ProxyPassword:                  tfData.ProxyPassword.ValueString(),
+		AppName:                        tfData.AppName.ValueString(),
+		ClassPath:                      tfData.ClassPath.ValueString(),
+		RecordData:                     tfData.RecordData.ValueString(),
 	}
-	return res, nil
+}
+
+// convert from api data model into terraform data model
+func model2tf(apiData model.DNSRecord) (tfData tfDNSRecord) {
+	record := tfDNSRecord{}
+
+	if apiData.Type != "" {
+		record.Type = types.StringValue(string(apiData.Type))
+	}
+	if apiData.Domain != "" {
+		record.Domain = types.StringValue(string(apiData.Domain))
+	}
+	if apiData.TTL != 0 {
+		record.TTL = types.Int64Value(int64(apiData.TTL))
+	}
+	if apiData.Comments != "" {
+		record.Comments = types.StringValue(apiData.Comments)
+	}
+	if apiData.IPAddress != "" {
+		record.IPAddress = types.StringValue(apiData.IPAddress)
+	}
+	if apiData.Ptr != false {
+		record.Ptr = types.BoolValue(apiData.Ptr)
+	}
+	if apiData.CreatePtrZone != false {
+		record.CreatePtrZone = types.BoolValue(apiData.CreatePtrZone)
+	}
+	if apiData.UpdateSvcbHints != false {
+		record.UpdateSvcbHints = types.BoolValue(apiData.UpdateSvcbHints)
+	}
+	if apiData.NameServer != "" {
+		record.NameServer = types.StringValue(apiData.NameServer)
+	}
+	if apiData.Glue != "" {
+		record.Glue = types.StringValue(apiData.Glue)
+	}
+	if apiData.CName != "" {
+		record.CName = types.StringValue(apiData.CName)
+	}
+	if apiData.PtrName != "" {
+		record.PtrName = types.StringValue(apiData.PtrName)
+	}
+	if apiData.Exchange != "" {
+		record.Exchange = types.StringValue(apiData.Exchange)
+	}
+	if apiData.Preference != 0 {
+		record.Preference = types.Int64Value(int64(apiData.Preference))
+	}
+	if apiData.Text != "" {
+		record.Text = types.StringValue(apiData.Text)
+	}
+	if apiData.SplitText != false {
+		record.SplitText = types.BoolValue(apiData.SplitText)
+	}
+	if apiData.Mailbox != "" {
+		record.Mailbox = types.StringValue(apiData.Mailbox)
+	}
+	if apiData.TxtDomain != "" {
+		record.TxtDomain = types.StringValue(apiData.TxtDomain)
+	}
+	if apiData.Priority != 0 {
+		record.Priority = types.Int64Value(int64(apiData.Priority))
+	}
+	if apiData.Weight != 0 {
+		record.Weight = types.Int64Value(int64(apiData.Weight))
+	}
+	if apiData.Port != 0 {
+		record.Port = types.Int64Value(int64(apiData.Port))
+	}
+	if apiData.Target != "" {
+		record.Target = types.StringValue(string(apiData.Target))
+	}
+	if apiData.NaptrOrder != 0 {
+		record.NaptrOrder = types.Int64Value(int64(apiData.NaptrOrder))
+	}
+	if apiData.NaptrPreference != 0 {
+		record.NaptrPreference = types.Int64Value(int64(apiData.NaptrPreference))
+	}
+	if apiData.NaptrFlags != "" {
+		record.NaptrFlags = types.StringValue(apiData.NaptrFlags)
+	}
+	if apiData.NaptrServices != "" {
+		record.NaptrServices = types.StringValue(apiData.NaptrServices)
+	}
+	if apiData.NaptrRegexp != "" {
+		record.NaptrRegexp = types.StringValue(apiData.NaptrRegexp)
+	}
+	if apiData.NaptrReplacement != "" {
+		record.NaptrReplacement = types.StringValue(apiData.NaptrReplacement)
+	}
+	if apiData.DName != "" {
+		record.DName = types.StringValue(apiData.DName)
+	}
+	if apiData.KeyTag != 0 {
+		record.KeyTag = types.Int64Value(int64(apiData.KeyTag))
+	}
+	if apiData.Algorithm != "" {
+		record.Algorithm = types.StringValue(apiData.Algorithm)
+	}
+	if apiData.DigestType != "" {
+		record.DigestType = types.StringValue(apiData.DigestType)
+	}
+	if apiData.Digest != "" {
+		record.Digest = types.StringValue(apiData.Digest)
+	}
+	if apiData.SshfpAlgorithm != "" {
+		record.SshfpAlgorithm = types.StringValue(apiData.SshfpAlgorithm)
+	}
+	if apiData.SshfpFingerprintType != "" {
+		record.SshfpFingerprintType = types.StringValue(apiData.SshfpFingerprintType)
+	}
+	if apiData.SshfpFingerprint != "" {
+		record.SshfpFingerprint = types.StringValue(apiData.SshfpFingerprint)
+	}
+	if apiData.TlsaCertificateUsage != "" {
+		record.TlsaCertificateUsage = types.StringValue(apiData.TlsaCertificateUsage)
+	}
+	if apiData.TlsaSelector != "" {
+		record.TlsaSelector = types.StringValue(apiData.TlsaSelector)
+	}
+	if apiData.TlsaMatchingType != "" {
+		record.TlsaMatchingType = types.StringValue(apiData.TlsaMatchingType)
+	}
+	if apiData.TlsaCertificateAssociationData != "" {
+		record.TlsaCertificateAssociationData = types.StringValue(apiData.TlsaCertificateAssociationData)
+	}
+	if apiData.SvcPriority != 0 {
+		record.SvcPriority = types.Int64Value(int64(apiData.SvcPriority))
+	}
+	if apiData.SvcTargetName != "" {
+		record.SvcTargetName = types.StringValue(apiData.SvcTargetName)
+	}
+	if apiData.SvcParams != "" {
+		record.SvcParams = types.StringValue(apiData.SvcParams)
+	}
+	if apiData.AutoIpv4Hint != false {
+		record.AutoIpv4Hint = types.BoolValue(apiData.AutoIpv4Hint)
+	}
+	if apiData.AutoIpv6Hint != false {
+		record.AutoIpv6Hint = types.BoolValue(apiData.AutoIpv6Hint)
+	}
+	if apiData.UriPriority != 0 {
+		record.UriPriority = types.Int64Value(int64(apiData.UriPriority))
+	}
+	if apiData.UriWeight != 0 {
+		record.UriWeight = types.Int64Value(int64(apiData.UriWeight))
+	}
+	if apiData.Uri != "" {
+		record.Uri = types.StringValue(apiData.Uri)
+	}
+	if apiData.Flags != "" {
+		record.Flags = types.StringValue(apiData.Flags)
+	}
+	if apiData.Tag != "" {
+		record.Tag = types.StringValue(apiData.Tag)
+	}
+	if apiData.Value != "" {
+		record.Value = types.StringValue(apiData.Value)
+	}
+	if apiData.AName != "" {
+		record.AName = types.StringValue(apiData.AName)
+	}
+	if apiData.Forwarder != "" {
+		record.Forwarder = types.StringValue(apiData.Forwarder)
+	}
+	if apiData.ForwarderPriority != 0 {
+		record.ForwarderPriority = types.Int64Value(int64(apiData.ForwarderPriority))
+	}
+	if apiData.DnssecValidation != false {
+		record.DnssecValidation = types.BoolValue(apiData.DnssecValidation)
+	}
+	if apiData.ProxyType != "" {
+		record.ProxyType = types.StringValue(apiData.ProxyType)
+	}
+	if apiData.ProxyAddress != "" {
+		record.ProxyAddress = types.StringValue(apiData.ProxyAddress)
+	}
+	if apiData.ProxyPort != 0 {
+		record.ProxyPort = types.Int64Value(int64(apiData.ProxyPort))
+	}
+	if apiData.ProxyUsername != "" {
+		record.ProxyUsername = types.StringValue(apiData.ProxyUsername)
+	}
+	if apiData.ProxyPassword != "" {
+		record.ProxyPassword = types.StringValue(apiData.ProxyPassword)
+	}
+	if apiData.AppName != "" {
+		record.AppName = types.StringValue(apiData.AppName)
+	}
+	if apiData.ClassPath != "" {
+		record.ClassPath = types.StringValue(apiData.ClassPath)
+	}
+	if apiData.RecordData != "" {
+		record.RecordData = types.StringValue(apiData.RecordData)
+	}
+	return record
 }

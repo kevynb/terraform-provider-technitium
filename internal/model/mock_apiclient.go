@@ -184,7 +184,7 @@ func (_m *MockDNSApiClient) SetRecords(ctx context.Context, domain DNSDomain, rT
 	ret := _m.Called(ctx, domain, rType, rName, records)
 
 	if len(ret) == 0 {
-		panic("no return value specified for SetRecords")
+		panic("no return value specified for UpdateRecord")
 	}
 
 	var r0 error
@@ -197,7 +197,7 @@ func (_m *MockDNSApiClient) SetRecords(ctx context.Context, domain DNSDomain, rT
 	return r0
 }
 
-// MockDNSApiClient_SetRecords_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetRecords'
+// MockDNSApiClient_SetRecords_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateRecord'
 type MockDNSApiClient_SetRecords_Call struct {
 	*mock.Call
 }
@@ -209,7 +209,7 @@ type MockDNSApiClient_SetRecords_Call struct {
 //   - rName DNSRecordName
 //   - records []DNSUpdateRecord
 func (_e *MockDNSApiClient_Expecter) SetRecords(ctx interface{}, domain interface{}, rType interface{}, rName interface{}, records interface{}) *MockDNSApiClient_SetRecords_Call {
-	return &MockDNSApiClient_SetRecords_Call{Call: _e.mock.On("SetRecords", ctx, domain, rType, rName, records)}
+	return &MockDNSApiClient_SetRecords_Call{Call: _e.mock.On("UpdateRecord", ctx, domain, rType, rName, records)}
 }
 
 func (_c *MockDNSApiClient_SetRecords_Call) Run(run func(ctx context.Context, domain DNSDomain, rType DNSRecordType, rName DNSRecordName, records []DNSUpdateRecord)) *MockDNSApiClient_SetRecords_Call {

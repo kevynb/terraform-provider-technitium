@@ -3,7 +3,7 @@ package client
 import (
 	"net/http"
 
-	"github.com/veksh/terraform-provider-godaddy-dns/libs/ratelimiter"
+	"github.com/kevynb/terraform-provider-technitium-dns/libs/ratelimiter"
 )
 
 type rateLimitedHTTPTransport struct {

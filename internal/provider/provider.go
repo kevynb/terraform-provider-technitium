@@ -11,119 +11,124 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/veksh/terraform-provider-godaddy-dns/internal/model"
+	"github.com/kevynb/terraform-provider-technitium-dns/internal/model"
 )
 
-// testing api at ote is useless
-const GODADDY_API_URL = "https://api.godaddy.com"
-
 // https://pkg.go.dev/github.com/hashicorp/terraform-plugin-framework/provider
-var _ provider.Provider = &GoDaddyDNSProvider{}
+var _ provider.Provider = &TechnitiumDNSProvider{}
 
-type APIClientFactory func(apiURL, apiKey, apiSecret string) (model.DNSApiClient, error)
+type APIClientFactory func(apiURL, token string, skipCertificateVerification bool) (model.DNSApiClient, error)
 
-type GoDaddyDNSProvider struct {
+type TechnitiumDNSProvider struct {
 	// "dev" for local testing, "test" for acceptance tests, "v1.2.3" for prod
 	version       string
 	clientFactory APIClientFactory
 	reqMutex      sync.Mutex
 }
 
-func (p *GoDaddyDNSProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+func (p *TechnitiumDNSProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
 	// common prefix for resources
-	resp.TypeName = "godaddy-dns"
+	resp.TypeName = "technitium-dns"
 	// set in configure
 	resp.Version = p.version
 }
 
 // have to match schema
-type GoDaddyDNSProviderModel struct {
-	APIKey    types.String `tfsdk:"api_key"`
-	APISecret types.String `tfsdk:"api_secret"`
+type TechnitiumDNSProviderModel struct {
+	APIURL                      types.String `tfsdk:"api_url"`
+	Token                       types.String `tfsdk:"token"`
+	SkipCertificateVerification types.Bool   `tfsdk:"skip_certificate_verification"`
 }
 
-func (p *GoDaddyDNSProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *TechnitiumDNSProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// full documentation: conf in templates
 		// see https://github.com/hashicorp/terraform-provider-tls/blob/main/templates/index.md.tmpl
-		MarkdownDescription: "GoDaddy DNS provider",
+		MarkdownDescription: "Technitium DNS provider",
 		Attributes: map[string]schema.Attribute{
-			"api_key": schema.StringAttribute{
-				MarkdownDescription: "GoDaddy API key",
+			"api_url": schema.StringAttribute{
+				MarkdownDescription: "The Technitium API base URL.",
+				Required:            true,
+			},
+			"token": schema.StringAttribute{
+				MarkdownDescription: "Technitium API token.",
 				Optional:            true,
 				Sensitive:           true,
 			},
-			"api_secret": schema.StringAttribute{
-				MarkdownDescription: "GoDaddy API secret",
+			"skip_certificate_verification": schema.BoolAttribute{
+				MarkdownDescription: "Skip https certificate verification. Useful for servers using self-signed certificates.",
 				Optional:            true,
-				Sensitive:           true,
 			},
 		},
-		// also: Blocks
 	}
 }
 
-func (p *GoDaddyDNSProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+func (p *TechnitiumDNSProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var confData TechnitiumDNSProviderModel
 
-	var confData GoDaddyDNSProviderModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &confData)...) // Extract config data
 
-	resp.Diagnostics.Append(req.Config.Get(ctx, &confData)...)
-
-	apiKey := os.Getenv("GODADDY_API_KEY")
-	if !(confData.APIKey.IsUnknown() || confData.APIKey.IsNull()) {
-		apiKey = confData.APIKey.ValueString()
+	apiURL := os.Getenv("TECHNITIUM_API_URL")
+	if !(confData.APIURL.IsUnknown() || confData.APIURL.IsNull()) {
+		apiURL = confData.APIURL.ValueString()
 	}
-	if apiKey == "" && p.version != "unittest" {
-		// be more specific than resp.Diagnostics.AddError(...)
-		resp.Diagnostics.AddAttributeError(path.Root("api_key"),
-			"Missing API Key Configuration",
-			"While configuring the provider, the API key was not found in "+
-				"the GODADDY_API_KEY environment variable or provider "+
-				"configuration block api_key attribute.",
+	if apiURL == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("api_url"),
+			"Missing API URL Configuration",
+			"While configuring the provider, the API url was not found in "+
+				"the TECHNITIUM_API_URL environment variable or provider "+
+				"configuration block api_url attribute.",
 		)
+		return
 	}
-	apiSecret := os.Getenv("GODADDY_API_SECRET")
-	if !(confData.APISecret.IsUnknown() || confData.APISecret.IsNull()) {
-		apiSecret = confData.APISecret.ValueString()
+
+	token := os.Getenv("TECHNITIUM_API_TOKEN")
+	if !(confData.Token.IsUnknown() || confData.Token.IsNull()) {
+		token = confData.Token.ValueString()
 	}
-	if apiSecret == "" && p.version != "unittest" {
-		resp.Diagnostics.AddAttributeError(path.Root("api_secret"),
-			"Missing API Secret Configuration",
-			"While configuring the provider, the API secret was not found in "+
-				"the GODADDY_API_SECRET environment variable or provider "+
-				"configuration block api_secret attribute.",
+	if token == "" && p.version != "unittest" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("token"),
+			"Missing Token Configuration",
+			"While configuring the provider, the API token was not found in "+
+				"the TECHNITIUM_API_TOKEN environment variable or provider "+
+				"configuration block token attribute.",
 		)
+		return
+	}
+
+	skipCertificateVerification := false
+	if !(confData.SkipCertificateVerification.IsUnknown() || confData.SkipCertificateVerification.IsNull()) {
+		skipCertificateVerification = confData.SkipCertificateVerification.ValueBool()
 	}
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	client, err := p.clientFactory(GODADDY_API_URL, apiKey, apiSecret)
+	client, err := p.clientFactory(apiURL, token, skipCertificateVerification)
 	if err != nil {
-		resp.Diagnostics.AddError("failed to create API client", err.Error())
+		resp.Diagnostics.AddError("Failed to create API client", err.Error())
 		return
 	}
 
 	resp.ResourceData = client
 }
 
-func (p *GoDaddyDNSProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *TechnitiumDNSProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		RecordResourceFactory(&p.reqMutex),
 	}
 }
 
-func (p *GoDaddyDNSProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *TechnitiumDNSProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return nil
-	// return []func() datasource.DataSource{
-	// 	NewEmptyDataSource,
-	// }
 }
 
 func New(version string, clientFactory APIClientFactory) func() provider.Provider {
 	return func() provider.Provider {
-		return &GoDaddyDNSProvider{
+		return &TechnitiumDNSProvider{
 			version:       version,
 			clientFactory: clientFactory,
 			reqMutex:      sync.Mutex{},

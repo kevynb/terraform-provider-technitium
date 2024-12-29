@@ -71,7 +71,7 @@ func simpleResourceConfig(rectype model.DNSRecordType, target model.DNSRecordDat
 	templateString := `
 	provider "godaddy-dns" {}
 	resource "godaddy-dns_record" "test-{{ .RecType | lower }}" {
-	  domain = "{{ .Domain }}"
+	  domain = "{{ .Zone }}"
 	  type   = "{{ .RecType | upper }}"
 	  name   = "test-{{ .RecType | lower }}._test"
 	  data   = "{{ .RecData }}"
@@ -132,7 +132,7 @@ func makeTestRecSet(rectype model.DNSRecordType, values []model.DNSRecordData) t
 	  dataValues = [{{ .RecValsJoined }}]
 	}
 	resource "godaddy-dns_record" "{{ .RecName }}" {
-	  domain = "{{ .Domain }}"
+	  domain = "{{ .Zone }}"
 	  type   = "{{ .RecType | upper }}"
 	  name   = "{{ .DNSRecName }}"
 

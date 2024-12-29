@@ -1,17 +1,17 @@
 default: build
 .PHONY: build test testacc docs local
 
-PROJ := "godaddy-dns"
-ORG := "veksh"
+PROJ := technitium-dns
+ORG := kevynb
 
-BINARY := "terraform-provider-$(PROJ)"
+BINARY := terraform-provider-$(PROJ)
 # BINARY := "terraform-provider-godaddy-dns_v$(VERSION)"
 VERSION := $(shell git describe --tags --always)
 
 ARCH := $(shell go env GOARCH)
 OS := $(shell go env GOOS)
 
-LOCAL_PATH := "~/.terraform.d/plugins/registry.terraform.io/$(ORG)/$(PROJ)/$(VERSION)/$(OS)_$(ARCH)/"
+LOCAL_PATH := ~/.terraform.d/plugins/registry.terraform.io/$(ORG)/$(PROJ)/$(VERSION)/$(OS)_$(ARCH)/
 
 export
 
