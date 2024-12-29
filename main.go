@@ -8,9 +8,9 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/kevynb/terraform-provider-technitium-dns/internal/client"
-	"github.com/kevynb/terraform-provider-technitium-dns/internal/model"
-	"github.com/kevynb/terraform-provider-technitium-dns/internal/provider"
+	"github.com/kevynb/terraform-provider-technitium/internal/client"
+	"github.com/kevynb/terraform-provider-technitium/internal/model"
+	"github.com/kevynb/terraform-provider-technitium/internal/provider"
 )
 
 var (
@@ -27,7 +27,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/kevynb/technitium-dns",
+		Address: "registry.terraform.io/kevynb/technitium",
 		Debug:   debug,
 	}
 

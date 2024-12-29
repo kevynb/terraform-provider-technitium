@@ -1,7 +1,7 @@
 default: build
 .PHONY: build test testacc docs local
 
-PROJ := technitium-dns
+PROJ := technitium
 ORG := kevynb
 
 BINARY := terraform-provider-$(PROJ)

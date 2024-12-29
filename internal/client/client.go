@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kevynb/terraform-provider-technitium-dns/internal/model"
-	"github.com/kevynb/terraform-provider-technitium-dns/libs/ratelimiter"
+	"github.com/kevynb/terraform-provider-technitium/internal/model"
+	"github.com/kevynb/terraform-provider-technitium/libs/ratelimiter"
 	"github.com/pkg/errors"
 )
 

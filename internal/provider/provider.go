@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/kevynb/terraform-provider-technitium-dns/internal/model"
+	"github.com/kevynb/terraform-provider-technitium/internal/model"
 )
 
 // https://pkg.go.dev/github.com/hashicorp/terraform-plugin-framework/provider
@@ -28,7 +28,7 @@ type TechnitiumDNSProvider struct {
 
 func (p *TechnitiumDNSProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
 	// common prefix for resources
-	resp.TypeName = "technitium-dns"
+	resp.TypeName = "technitium"
 	// set in configure
 	resp.Version = p.version
 }

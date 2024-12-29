@@ -1,3 +1,6 @@
+## This is a WIP
+I am refactoring this to build a Technitium provider. 
+
 # GoDaddy DNS provider for Terraform
 
 This plug-in enables the management of individual DNS resource records for domains hosted on GoDaddy DNS servers.
@@ -16,7 +19,7 @@ Example usage (set credentials in `GODADDY_API_KEY` and `GODADDY_API_SECRET` env
 terraform {
   required_providers {
     godaddy-dns = {
-      source = "registry.terraform.io/veksh/godaddy-dns"
+      source = "registry.terraform.io/kevynb/technitium"
     }
   }
 }

@@ -1,4 +1,4 @@
-module github.com/kevynb/terraform-provider-technitium-dns
+module github.com/kevynb/terraform-provider-technitium
 
 go 1.21
 
