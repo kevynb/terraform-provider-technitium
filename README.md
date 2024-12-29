@@ -1,56 +1,129 @@
-## This is a WIP
-I am refactoring this to build a Technitium provider. 
+# Terraform Technitium DNS Provider
 
-# GoDaddy DNS provider for Terraform
+The Technitium DNS provider for Terraform enables the management of individual DNS resource records on domains hosted by Technitium DNS servers. It provides granular control over DNS records while preserving existing records and tolerating external modifications.
 
-This plug-in enables the management of individual DNS resource records for domains hosted on GoDaddy DNS servers.
+## Features
 
-It only manages DNS (no e.g. domain management) and aims to manage individual DNS resource records (not the whole domain), while preserving existent records and tolerating external modifications.
+- **Granular Record Management**: Manage individual DNS records (`A`, `AAAA`, `CNAME`, `MX`, `TXT`, `SRV`, and more) without affecting the rest of the domain configuration.
+- **Support for Diverse Record Types**: Covers all common DNS record types, including `A`, `AAAA`, `CNAME`, `MX`, `NS`, `TXT`, `SRV`, `PTR`, `NAPTR`, `CAA`, `ANAME`, `URI`, and `TLSA`.
+- **Preserve Existing Records**: Modifications made outside Terraform are respected; only managed records are updated or destroyed.
+- **Incremental Updates**: Safely manage subsets of DNS records without disrupting others in the same zone.
 
-## GoDaddy API access restrictions
+## Getting Started
 
-Unfortunately, at the start of May 2024 GoDaddy suddenly decided to restrict access to their DNS management API. There were no announcements of this policy change and as of 2024.05.08 it is still not reflected in [developers' documentation](https://developer.godaddy.com/getstarted), but there are [many](https://www.reddit.com/r/godaddy/comments/1chs1j8/godaddy_access_denied_via_apicall/) [reports](https://www.reddit.com/r/godaddy/comments/1bl0f5r/am_i_the_only_one_who_cant_use_the_api/) of the same [problem](https://community.letsencrypt.org/t/getting-unauthorized-url-error-while-trying-to-get-cert-for-subdomains/217329) (i.e. getting an "Authenticated user is not allowed access" error while accessing DNS API with the valid keys). So for now the development of this provider is stopped.
+### Installation
 
-## Usage
+Add the provider to your Terraform configuration:
 
-Example usage (set credentials in `GODADDY_API_KEY` and `GODADDY_API_SECRET` env vars):
-
-``` terraform
+```hcl
 terraform {
   required_providers {
-    godaddy-dns = {
+    technitium = {
       source = "registry.terraform.io/kevynb/technitium"
     }
   }
 }
+```
 
-# keys usually set with env GODADDY_API_KEY and GODADDY_API_SECRET
-provider "godaddy-dns" {}
+### Authentication
 
-# to import existing records:
-# terraform import godaddy-dns_record.new-cname domain.com:CNAME:alias:testing.com
-resource "godaddy-dns_record" "new-cname" {
-  domain = "domain.com"
-  type   = "CNAME"
-  name   = "alias"
-  data   = "test.com"
+The provider uses the `TECHNITIUM_API_URL` and `TECHNITIUM_API_TOKEN` environment variables for authentication.
+
+Alternatively, credentials can be provided directly in the provider block:
+
+```hcl
+provider "technitium" {
+  api_url = "https://your-technitium-server/api"
+  api_token = "your-api-token"
 }
 ```
 
-## Supported RR types, mode of operation
+### Example Usage
 
-It currently supports `A`, `AAAA`, `CNAME`, `MX`, `NS` and `TXT` records. `SRV` are not supported; if anyone hosting AD on GoDaddy or uses them for VOIP or something like that, please let me know by creating an issue.
+```hcl
+resource "technitium_dns_record" "example" {
+  domain     = "test.example.com"
+  type       = "A"
+  ttl        = 3600
+  ip_address = "192.168.1.1"
+}
+```
 
-GoDaddy API does not have stable identities for DNS records, and in case of external modifications (e.g. via web console) behaviour is slightly different for "single-valued" vs "multi-valued" records
-- for "single-valued" record types (`CNAME`) there could be only 1 record of this type with a given name, so these are just replaced by update
-- for "multi-valued" record types (`A`, `MX`, `NS`, `TXT`) there could be several records
-with a given name (e.g. multiple MXes with different priorities and targets), so matching is done on value
-- if record's value is modified outside of Terraform, it is treated as a completely different record and is preserved, while original record is considered gone and is re-created on `apply` (use `refresh` + `import` to re-link modified record back to original).
+#### Advanced Example
 
-## Differences vs alternative providers
+```hcl
+resource "technitium_dns_record" "srv_record" {
+  zone        = "example.com"
+  domain      = "service.example.com"
+  type        = "SRV"
+  ttl         = 3600
+  priority    = 10
+  weight      = 5
+  port        = 443
+  target      = "target.example.com"
+}
 
-Differences vs n3integration provider and its forks:
-- configuration object is record, not (top-level) domain no need to bring it all under terraform management
-- could safely manage a subset of records (e.g. only one TXT or CNAME at domain top), keeping the rest intact
-- updates do not result in scary plans threatening to destroy all the records in the whole domain
-- `destroy` is fully supported and removes only previously created records
+resource "technitium_dns_record" "app_record" {
+  zone       = "example.com"
+  domain     = "app.example.com"
+  type       = "APP"
+  ttl        = 3600
+  app_name   = "Split Horizon"
+  class_path = "SplitHorizon.SimpleAddress"
+  record_data = jsonencode({
+    "tailscale": ["100.115.192.11", "fd7a:115c:a1e0:ab12:4843:ac32:9911:da02"],
+    "private": ["192.168.1.50"]
+  })
+}
+```
+
+## Supported Record Types
+
+The provider supports the following DNS record types:
+
+- **A, AAAA**: Address records for IPv4 and IPv6.
+- **CNAME**: Canonical name records.
+- **MX**: Mail exchange records.
+- **NS**: Name server records.
+- **TXT**: Text records.
+- **SRV**: Service locator records.
+- **PTR**: Pointer records for reverse DNS.
+- **NAPTR**: Naming authority pointer records.
+- **CAA**: Certification Authority Authorization records.
+- **ANAME**: Alias records.
+- **URI**: URI records.
+- **TLSA**: TLS authentication records.
+- **SOA**: SOA records.
+- **DNAME**: DNAME records.
+- **DS**: DS records.
+- **SSHFP**: SSHFP records.
+- **SVCB**: SVCB records.
+- **HTTPS**: HTTPS records.
+- **FWD**: Technitium custom FWD records.
+- **APP**: Technitium custom APP records.
+
+## Differences from Other Providers
+
+Compared to other DNS providers:
+
+1. **Record-Focused Management**:
+    - Only individual records are managed, not the entire domain.
+    - Updates are incremental and non-destructive.
+2. **Preserve Existing Records**:
+    - Unmanaged records are untouched.
+3. **Destroy Support**:
+    - Deletes only the records explicitly managed by Terraform.
+
+## Contributing
+
+Contributions are welcome! To contribute:
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature/your-feature`).
+3. Commit your changes (`git commit -m 'Add new feature'`).
+4. Push the branch (`git push origin feature/your-feature`).
+5. Open a pull request.
+
+## Thanks
+
+This project is based on [terraform-provider-godaddy-dns](https://github.com/veksh/terraform-provider-godaddy-dns). Special thanks to the contributors for their foundational work.
