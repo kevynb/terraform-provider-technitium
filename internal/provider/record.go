@@ -3,12 +3,10 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -565,27 +563,11 @@ func (r *RecordResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 // terraform import godaddy-dns_record.new-cname domain:CNAME:_test:testing.com
 func (r *RecordResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// resource.ImportStatePassthroughID(ctx, path.Root("data"), req, resp)
-
-	// for some reason Terraform does not pass schema data to Read on import
-	// either as a separate structure in ReadRequest or as defaults: if only
-	// they were accessible, it would eliminate the need to pass anything here
-
-	idParts := strings.SplitN(req.ID, IMPORT_SEP, 4)
-
-	// mb check format and emptiness
-	if len(idParts) != 4 {
-		resp.Diagnostics.AddError(
-			"Unexpected Import Identifier",
-			fmt.Sprintf("Expected import identifier format: domain:TYPE:name:data"+
-				"like mydom.com:CNAME:www.subdom:www.other.com. Got: %q", req.ID),
-		)
-		return
-	}
-
-	for i, f := range []string{"domain", "type", "name", "data"} {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(f), idParts[i])...)
-	}
+	resp.Diagnostics.AddError(
+		"Unsupported feature",
+		fmt.Sprintf("The import feature is currently not supported, PRs welcome.", req.ID),
+	)
+	return
 }
 
 // add record fields to context; export TF_LOG=debug to view

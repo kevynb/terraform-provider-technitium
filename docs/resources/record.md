@@ -1,175 +1,125 @@
 ---
-page_title: "godaddy-dns_record Resource - terraform-provider-godaddy-dns"
+page_title: "technitium_record Resource - terraform-provider-technitium"
 subcategory: ""
 description: |-
-  DNS resource record represens a single RR in managed domain
+  Manage DNS resource records on Technitium DNS servers
 ---
 
-# godaddy-dns_record (Resource)
+# technitium_record (Resource)
 
-DNS resource record represens a single RR in managed domain
-
-It currently supports `A`, `AAAA`, `CNAME`, `MX`, `NS` and `TXT` records. `SRV` are not supported; if anyone hosting AD on GoDaddy or uses SRV for VOIP or something like that, please let me know by creating an issue.
-
-GoDaddy API does not have stable identities for DNS records, and in case of external modifications (e.g. via web console) behaviour is different for "single-valued" vs "multi-valued" records
-- for "single-valued" record types (`A` and `CNAME`) there could be only 1 record of this type with a given name, so these are just replaced by update
-- for "multi-valued" record types (`MX`, `NS`, `TXT`) there could be several records with a given name (e.g. multiple MXes with different priorities and targets), so matching is done on value; if record's value is modified outside of Terraform, it is treated as a completely different record and is preserved (and original record is considered gone), so record is re-created on update.
+The `technitium_record` resource allows you to manage individual DNS resource records on domains hosted by Technitium DNS servers.
 
 ## Example Usage
 
-```terraform
-provider "godaddy-dns" {
-  api_key    = "better set it in GODADDY_API_KEY"
-  api_secret = "better set it in GODADDY_API_SECRET"
-}
+### Create a CNAME Record
 
-# create "alias.test.com" as CNAME for "other.com"
-resource "godaddy-dns_record" "my-cname" {
-  domain = "test.com"
+```terraform
+resource "technitium_record" "my_cname" {
+  zone   = "example.com"
+  domain = "alias.example.com"
   type   = "CNAME"
-  name   = "alias"
-  data   = "other.com"
+  cname  = "target.example.com"
+  ttl    = 3600
 }
 ```
 
-To set several records, use `for_each`:
+### Create an APP Record
 
 ```terraform
-terraform {
-  required_providers {
-    godaddy-dns = {
-      source = "registry.terraform.io/veksh/godaddy-dns"
-    }
-  }
-}
-
-# keys from env
-provider "godaddy-dns" {}
-
-# struct for several records
-locals {
-  domain = "mydomain.com"
-  records = {
-    "mx" = {
-      type = "MX",
-      name = "_test-cli",
-      data = "mx1.pseudo.com",
-      prio = 10,
-    },
-    "txt" = {
-      type = "TXT",
-      name = "_test-cli",
-      data = "also, txt",
-    },
-  }
-}
-
-# with names like `godaddy-dns_record.array-of-records["mx"]`
-resource "godaddy-dns_record" "array-of-records" {
-  for_each = local.records
-  domain   = local.domain
-  type     = each.value.type
-  name     = each.value.name
-  data     = each.value.data
-  priority = lookup(each.value, "prio", null)
+resource "technitium_record" "app_record" {
+  zone       = "example.com"
+  domain     = "app.example.com"
+  type       = "APP"
+  ttl        = 3600
+  app_name   = "Split Horizon"
+  class_path = "SplitHorizon.SimpleAddress"
+  record_data = jsonencode({
+    "tailscale": ["100.115.205.32", "fd7a:115c:a1e0:ab12:4843:cd96:6273:cd20"],
+    "private": ["192.168.88.50"]
+  })
 }
 ```
 
-Use it in DNS challenge for Amazon Certificate Manager for Cloudfront site on custom domain:
-
-```terraform
-locals {
-  website_name   = "mysite"
-  website_domain = "mydomain.com"
-}
-
-# cloudfront requires (custom) cert to be in "us-east-1" region
-provider "aws" {
-  alias  = "us-east-1"
-  region = "us-east-1"
-}
-
-# expects GODADDY_API_KEY and GODADDY_API_SECRET in environment
-provider "godaddy-dns" {}
-
-resource "aws_acm_certificate" "nondefault_cert" {
-  provider          = aws.us-east-1
-  domain_name       = local.website_name
-  validation_method = "DNS"
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "godaddy-dns_record" "cert_challenge" {
-  for_each = {
-    for dvo in aws_acm_certificate.nondefault_cert.domain_validation_options :
-    dvo.domain_name => {
-      name = trimsuffix(dvo.resource_record_name, join("", [".", local.website_domain, "."]))
-      data = trimsuffix(dvo.resource_record_value, ".")
-    }
-  }
-
-  domain = local.website_domain
-  type   = "CNAME"
-  name   = each.value.name
-  data   = each.value.data
-}
-
-resource "aws_acm_certificate_validation" "nondefault_cert_valid" {
-  provider        = aws.us-east-1
-  certificate_arn = aws_acm_certificate.nondefault_cert.arn
-  validation_record_fqdns = [
-    for dvo in aws_acm_certificate.nondefault_cert.domain_validation_options :
-  dvo.resource_record_name]
-}
-
-resource "aws_cloudfront_distribution" "s3_distribution" {
-  aliases = [local.website_name]
-  viewer_certificate {
-    acm_certificate_arn = aws_acm_certificate_validation.nondefault_cert_valid.certificate_arn
-    ssl_support_method  = "sni-only"
-  }
-
-  # rest of config is skipped, these are only for lint to stop complaining
-  enabled = true
-  restrictions {
-    geo_restriction {
-      restriction_type = ""
-    }
-  }
-  origin {
-    origin_id   = 1
-    domain_name = ""
-  }
-  default_cache_behavior {
-    allowed_methods        = [""]
-    cached_methods         = [""]
-    target_origin_id       = ""
-    viewer_protocol_policy = ""
-  }
-}
-```
-
-<!-- schema generated by tfplugindocs -->
 ## Schema
 
 ### Required
 
-- `data` (String) Record value returned for DNS query: target for CNAME, ip address for A etc
-- `domain` (String) Name of main managed domain (top-level) for this RR
-- `name` (String) Record name name (part of FQN), may include `.` for records in sub-domains or be `@` for top-level records
-- `type` (String) Resource record type: A, CNAME etc
+- **`type`** (String): DNS record type. Supported values:
+    - `A`, `AAAA`: Address records for IPv4 and IPv6.
+    - `CNAME`: Canonical name records.
+    - `MX`: Mail exchange records.
+    - `NS`: Name server records.
+    - `TXT`: Text records.
+    - `SRV`: Service locator records.
+    - `PTR`: Pointer records for reverse DNS.
+    - `NAPTR`: Naming authority pointer records.
+    - `CAA`: Certification Authority Authorization records.
+    - `ANAME`: Alias records.
+    - `URI`: URI records.
+    - `TLSA`: TLS authentication records.
+    - `SOA`, `DNAME`, `DS`, `SSHFP`, `SVCB`, `HTTPS`, `FWD`, `APP`: Advanced and custom records.
 
-### Optional
+- **`domain`** (String): Fully qualified domain name (FQDN) for the record (e.g., `sub.example.com`).
 
-- `priority` (Number) Record priority, required for MX (lower is higher)
-- `ttl` (Number) Record time-to-live, >= 600s <= 604800s (1 week), default 3600 seconds (1 hour)
+- **`ttl`** (Number): Record time-to-live in seconds. Must be between 600 and 604800 (1 week). Defaults to `3600`.
+
+### Optional, based on record type.
+
+- **`preference`** (Number): Priority for `MX` records. Lower values indicate higher priority.
+- **`priority`** (Number): Priority for `SRV` records. Lower values indicate higher priority.
+- **`weight`** (Number): Weight for `SRV` records to influence load balancing.
+- **`port`** (Number): Port number for `SRV` records.
+- **`target`** (String): Target for `CNAME`, `SRV`, or similar records.
+- **`text`** (String): Text content for `TXT` records.
+- **`app_name`** (String): Application name for `APP` records.
+- **`class_path`** (String): Class path for `APP` records.
+- **`record_data`** (String): JSON-encoded data for `APP` records.
+- **`comments`** (String): Optional comments associated with the record.
+- **`ptr`** (Boolean): Create a PTR record for `A` or `AAAA` records (default: `false`).
+- **`create_ptr_zone`** (Boolean): Automatically create a PTR zone for `A` or `AAAA` records (default: `false`).
+- **`update_svcb_hints`** (Boolean): Update SVCB hints for `A` or `AAAA` records (default: `false`).
+- **`exchange`** (String): Exchange server for `MX` records.
+- **`cname`** (String): Canonical name for `CNAME` records.
+- **`ip_address`** (String): IPv4 or IPv6 address for `A` or `AAAA` records.
+
+Additional optional fields may be supported based on record type. Their name should mirror what you see in the technitium UI for each field.
+
+### Examples for Specific Record Types
+
+1. **MX Record**:
+   ```terraform
+   resource "technitium_record" "mx_record" {
+     domain    = "mail.example.com"
+     type      = "MX"
+     ttl       = 3600
+     preference  = 10
+     exchange  = "mailserver.example.com"
+   }
+   ```
+
+2. **SRV Record**:
+   ```terraform
+   resource "technitium_record" "srv_record" {
+     domain    = "_sip._tcp.example.com"
+     type      = "SRV"
+     ttl       = 3600
+     priority  = 10
+     weight    = 5
+     port      = 5060
+     target    = "sipserver.example.com"
+   }
+   ```
+
+3. **TXT Record**:
+   ```terraform
+   resource "technitium_record" "txt_record" {
+     domain = "verification.example.com"
+     type   = "TXT"
+     ttl    = 3600
+     text   = "sample-verification-code"
+   }
+   ```
 
 ## Import
 
-Import is supported using the id in format `<domain>:<type>:<name>:<data>`:
-
-```shell
-terraform import godaddy-dns_record.cname-alias mydom.com:CNAME:alias:test.com
-```
+Import is currently not supported. This will need to be added. PRs welcome.
