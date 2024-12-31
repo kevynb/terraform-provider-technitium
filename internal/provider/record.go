@@ -93,7 +93,7 @@ type tfDNSRecord struct {
 	RecordData                     types.String `tfsdk:"record_data"`
 }
 
-// RecordResource defines the implementation of GoDaddy DNS RR
+// RecordResource defines the implementation of Technitium DNS records
 type RecordResource struct {
 	client   model.DNSApiClient
 	reqMutex *sync.Mutex
@@ -420,7 +420,7 @@ func (r *RecordResource) Create(ctx context.Context, req resource.CreateRequest,
 	apiRecPlan := tf2model(planData)
 	// "put"/"add" does not check prior state (terraform does not provide one for Create)
 	// and so will fail on uniqueness violation (e.g. if record already exists
-	// after external modification, or if it is the second CNAME RR etc)
+	// after external modification, or if it is the second CNAME etc)
 	// - lets think it is ok for now -- let API do checking + run "import" if required
 	// - alt/TODO: read records and do noop if target record is already there
 	//   like `apiAllRecs, err := r.client.GetRecords(ctx, apiDomain, apiRecPlan.Type, apiRecPlan.Name)`
@@ -436,7 +436,7 @@ func (r *RecordResource) Create(ctx context.Context, req resource.CreateRequest,
 	resp.Diagnostics.Append(resp.State.Set(ctx, &planData)...)
 }
 
-// TODO(kbr): The read function might need some caching mechanism because it is currently refetching the full record list every time.
+// TODO: The read function might need some caching mechanism because it is currently refetching the full record list every time.
 func (r *RecordResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateData tfDNSRecord
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
@@ -465,15 +465,7 @@ func (r *RecordResource) Read(ctx context.Context, req resource.ReadRequest, res
 	} else {
 		tflog.Info(ctx, fmt.Sprintf(
 			"Reading DNS record: got %d answers", numberOfApiRecords))
-		// meaning of "match" is different between types
-		//  - for CNAME (and SOA), there could be only 1 records with a given name
-		//    in a (sub-)domain
-		//  - for A, TXT, MX and NS there could be several, have to match by data
-		//    - MXes could have different priorities; in theory, MX 0 and MX 10
-		//      could point to the same "data", but lets think that it is a
-		//      preversion and replace it with one :)
-		//    - TXT and NS for same name could differ only in TTL
-		//  - for SRV PK is proto+service+port+data, value is weight+prio+ttl
+		// Look for a matching record to define if the resource was changed.
 		for _, dnsRecordFromApi := range allRecordsFromApi {
 			tflog.Debug(ctx, fmt.Sprintf("Got DNS record: %v", dnsRecordFromApi))
 			println("dnsRecordFromApi", dnsRecordFromApi.Domain, "dnsRecordFromState", dnsRecordFromState.Domain)
@@ -552,8 +544,7 @@ func (r *RecordResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 	dnsRecordFromState := tf2model(stateData)
 
-	// for single-value types, delete is ok; multi-valued have to be replaced
-	err := r.client.DelRecord(ctx, dnsRecordFromState)
+	err := r.client.DeleteRecord(ctx, dnsRecordFromState)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error",
 			fmt.Sprintf("Deleting DNS record failed: %s", err))
@@ -561,7 +552,8 @@ func (r *RecordResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 }
 
-// terraform import godaddy-dns_record.new-cname domain:CNAME:_test:testing.com
+// terraform import technitium_record.new-cname domain:CNAME:_test:testing.com
+// Not implemented for now, need to find a good way given all of the possible parameters.
 func (r *RecordResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.AddError(
 		"Unsupported feature",

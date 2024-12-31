@@ -5,7 +5,6 @@ PROJ := technitium
 ORG := kevynb
 
 BINARY := terraform-provider-$(PROJ)
-# BINARY := "terraform-provider-godaddy-dns_v$(VERSION)"
 VERSION := $(shell git describe --tags --always)
 
 ARCH := $(shell go env GOARCH)
@@ -25,9 +24,6 @@ test:
 
 testacc:
 	TF_ACC=1 go test -v -timeout 2m ./...
-
-docs:
-	cd tools; go generate ./...; cd ..
 
 local: build
 	go build -o $(BINARY) -ldflags='-s -w -X main.version=$(VERSION)' .

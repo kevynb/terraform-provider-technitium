@@ -13,24 +13,12 @@ import (
 	"time"
 
 	"github.com/kevynb/terraform-provider-technitium/internal/model"
-	"github.com/kevynb/terraform-provider-technitium/libs/ratelimiter"
 	"github.com/pkg/errors"
 )
 
-// also: https://github.com/go-resty/resty
-
-// to view actual records
-// curlie -v GET "https://api.godaddy.com/v1/domains/veksh.in/records" -H "Authorization: sso-key $GODADDY_API_KEY:$GODADDY_API_SECRET"
-
 const (
 	HTTP_TIMEOUT = 10
-	// burst RL: not currently used
-	HTTP_RPS   = 1
-	HTTP_BURST = 60
-	// window RL: window size, max requests per window
-	HTTP_RATE_WINDOW = time.Duration(60) * time.Second
-	HTTP_RATE_RPW    = 60
-	DOMAINS_URL      = "/api/zones/records"
+	DOMAINS_URL  = "/api/zones/records"
 )
 
 const (
@@ -41,7 +29,6 @@ const (
 
 var _ model.DNSApiClient = Client{}
 
-// mb also http client here
 type Client struct {
 	apiURL     string
 	token      string
@@ -49,7 +36,6 @@ type Client struct {
 }
 
 func NewClient(apiURL string, token string, skipCertificateVerification bool) (*Client, error) {
-	// t := http.DefaultTransport.(*http.Transport).Clone()
 	httpTransport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: HTTP_TIMEOUT * time.Second}).DialContext,
@@ -57,17 +43,9 @@ func NewClient(apiURL string, token string, skipCertificateVerification bool) (*
 		ResponseHeaderTimeout: HTTP_TIMEOUT * time.Second,
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: skipCertificateVerification},
 	}
-	// TODO: mb make it pluggable as a parameter
-	// rateLimiter, err := ratelimiter.NewBucketRL(HTTP_RPS, HTTP_BURST)
-	rateLimiter, err := ratelimiter.NewWindowRL(HTTP_RATE_WINDOW, HTTP_RATE_RPW)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create rate limiter")
-	}
+
 	httpClient := http.Client{
-		Transport: &rateLimitedHTTPTransport{
-			limiter: rateLimiter,
-			next:    httpTransport,
-		},
+		Transport: httpTransport,
 	}
 	return &Client{
 		apiURL:     apiURL,
@@ -76,25 +54,22 @@ func NewClient(apiURL string, token string, skipCertificateVerification bool) (*
 	}, nil
 }
 
-type ApiResponse struct {
+type apiResponse struct {
 	Status            string          `json:"status"`
-	Response          ApiResponseBody `json:"response,omitempty"`
+	Response          apiResponseBody `json:"response,omitempty"`
 	ErrorMessage      string          `json:"errorMessage,omitempty"`
 	InnerErrorMessage string          `json:"innerErrorMessage,omitempty"`
 }
-
-type ApiResponseBody struct {
+type apiResponseBody struct {
 	Records []apiDNSRecordResponseItem `json:"records"`
-	Zone    ApiResponseZone            `json:"zone"`
+	Zone    apiResponseZone            `json:"zone"`
 }
-
-type ApiResponseZone struct {
+type apiResponseZone struct {
 	Name     string `json:"name"`
 	Type     string `json:"type"`
 	Internal bool   `json:"internal"`
 	Disabled bool   `json:"disabled"`
 }
-
 type apiDNSRecordResponseItem struct {
 	Type     string                        `json:"type,omitempty"`
 	Domain   string                        `json:"name,omitempty"`
@@ -166,12 +141,12 @@ type apiDNSRecordResponseItemRdata struct {
 	RecordData                     string `json:"data,omitempty"`
 }
 
-type apiErrorResponce struct {
+type apiErrorResponse struct {
 	Error   string `json:"code"`    // like "INVALID_VALUE_ENUM"
 	Message string `json:"message"` // like "type not any of: A, ..."
 }
 
-func (c Client) makeRecordsRequest(ctx context.Context, path string, method string, queryParams url.Values, formData url.Values, apiResponse *ApiResponse) error {
+func (c Client) makeRecordsRequest(ctx context.Context, path string, method string, queryParams url.Values, formData url.Values, apiResponse *apiResponse) error {
 	// Ensure the token is always set
 	if method == http.MethodGet {
 		if queryParams == nil {
@@ -226,7 +201,7 @@ func (c Client) makeRecordsRequest(ctx context.Context, path string, method stri
 	return nil
 }
 
-// GetRecords retrieves all DNS records for a given authoritative zone.
+// GetRecords retrieves all DNS records for a given domain name (zone is inferred automatically).
 func (c Client) GetRecords(ctx context.Context, domain model.DNSRecordName) ([]model.DNSRecord, error) {
 	params := url.Values{}
 	if domain != "" {
@@ -234,7 +209,7 @@ func (c Client) GetRecords(ctx context.Context, domain model.DNSRecordName) ([]m
 	}
 	params.Add("listZone", "true")
 
-	var apiResponse ApiResponse
+	var apiResponse apiResponse
 	err := c.makeRecordsRequest(ctx, "/get", http.MethodGet, params, nil, &apiResponse)
 	if err != nil {
 		return nil, err
@@ -248,7 +223,7 @@ func (c Client) GetRecords(ctx context.Context, domain model.DNSRecordName) ([]m
 	return res, nil
 }
 
-// AddRecords adds DNS records for a given domain.
+// AddRecord adds DNS record for a given domain.
 func (c Client) AddRecord(ctx context.Context, record model.DNSRecord) error {
 	formData := url.Values{
 		"type":   {string(record.Type)},
@@ -452,7 +427,7 @@ func (c Client) AddRecord(ctx context.Context, record model.DNSRecord) error {
 	return nil
 }
 
-// SetRecords updates DNS records for a given domain.
+// UpdateRecord updates DNS record for a given domain.
 func (c Client) UpdateRecord(ctx context.Context, oldRecord model.DNSRecord, newRecord model.DNSRecord) error {
 	formData := url.Values{
 		"type":   {string(oldRecord.Type)},
@@ -460,7 +435,8 @@ func (c Client) UpdateRecord(ctx context.Context, oldRecord model.DNSRecord, new
 		"ttl":    {fmt.Sprintf("%d", newRecord.TTL)},
 	}
 
-	// Add optional fields for the old record
+	// Api uses newXX to provide the new value of each field.
+	// That rule doesn't hold for all fields though.
 	if newRecord.Domain != oldRecord.Domain {
 		formData.Add("newDomain", string(newRecord.Domain))
 	}
@@ -812,9 +788,10 @@ func (c Client) UpdateRecord(ctx context.Context, oldRecord model.DNSRecord, new
 	return nil
 }
 
-// DelRecords deletes DNS records for a given domain, record type, and name.
-func (c Client) DelRecord(ctx context.Context, record model.DNSRecord) error {
+// DeleteRecord deletes a DNS record.
+func (c Client) DeleteRecord(ctx context.Context, record model.DNSRecord) error {
 	params := url.Values{}
+
 	if record.Domain != "" {
 		params.Add("domain", string(record.Domain))
 	}

@@ -114,6 +114,16 @@ Compared to other DNS providers:
 3. **Destroy Support**:
     - Deletes only the records explicitly managed by Terraform.
 
+## Notes
+
+This project was mostly whipped out overnight because I needed it for some homelab config. The code is far from perfect, I did not update the unit tests yet as I'm not using this in a business critical fashion.
+
+Things to improve:
+
+- [ ] Rewrite unit tests
+- [ ] Rework the record resource so that each record type only allows the associated parameters (this would also allow for cleaner code everywhere as mapping operations could be more specific)
+- [ ] Add some caching to the `read` mechanism to avoid refetching the list of records every time (overkill for now as I don't manage a lot of them, could be useful for other users)
+
 ## Contributing
 
 Contributions are welcome! To contribute:

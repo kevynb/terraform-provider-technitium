@@ -47,7 +47,6 @@ type DNSRecord struct {
 
 	TTL DNSRecordTTL // min 600, def 3600
 
-	Overwrite bool
 	Comments  string       // comment for the added resource
 	ExpiryTTL DNSRecordTTL // automatically delete the record when the value in seconds elapses
 
@@ -191,5 +190,5 @@ type DNSApiClient interface {
 	GetRecords(ctx context.Context, domain DNSRecordName) ([]DNSRecord, error)
 	AddRecord(ctx context.Context, record DNSRecord) error
 	UpdateRecord(ctx context.Context, oldRecord DNSRecord, newRecord DNSRecord) error
-	DelRecord(ctx context.Context, record DNSRecord) error
+	DeleteRecord(ctx context.Context, record DNSRecord) error
 }

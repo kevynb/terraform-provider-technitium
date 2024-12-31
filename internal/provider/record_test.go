@@ -288,7 +288,7 @@ func TestUnitNSExtMod(t *testing.T) {
 	mType, mName, mRecs, tfResName := makeMockRec(model.REC_NS, mData)
 
 	// add record, read it back
-	// also: calls DelRecord if step fails, mb add it as optional
+	// also: calls DeleteRecord if step fails, mb add it as optional
 	mClientAdd := model.NewMockDNSApiClient(t)
 	mClientAdd.EXPECT().AddRecords(mCtx, mDom, mRecs).Return(nil).Once()
 	mClientAdd.EXPECT().GetRecords(mCtx, mDom, mType, mName).Return(mRecs, nil).Once()
@@ -414,7 +414,7 @@ func TestUnitTXTWithAnother(t *testing.T) {
 	mRecsChangedPlusPre := makeTestRecSet(mType, []model.DNSRecordData{mDataPre, mDataChanged})
 
 	// add record, read it back
-	// also: calls DelRecord if step fails, mb add it as optional
+	// also: calls DeleteRecord if step fails, mb add it as optional
 	mClientAdd := model.NewMockDNSApiClient(t)
 	mClientAdd.EXPECT().AddRecords(mCtx, mDom, mRecs.Records).Return(nil).Once()
 	mClientAdd.EXPECT().GetRecords(mCtx, mDom, mType, mName).Return(mRecsPlusPre.Records, nil).Once()
@@ -478,7 +478,7 @@ func TestUnitTXTLifecycle(t *testing.T) {
 	mType, mName, mRecs, tfResName := makeMockRec(model.REC_TXT, mData)
 
 	// add record, read it back
-	// also: calls DelRecord if step fails, mb add it as optional
+	// also: calls DeleteRecord if step fails, mb add it as optional
 	mClientAdd := model.NewMockDNSApiClient(t)
 	mClientAdd.EXPECT().AddRecords(mCtx, mDom, mRecs).Return(nil).Once()
 	mClientAdd.EXPECT().GetRecords(mCtx, mDom, mType, mName).Return(mRecs, nil)
@@ -558,7 +558,7 @@ func TestUnitCnameLifecycle(t *testing.T) {
 	mType, mName, mRecs, tfResName := makeMockRec(model.REC_CNAME, mData)
 
 	// add record, read it back
-	// also: calls DelRecord if step fails, mb add it as optional
+	// also: calls DeleteRecord if step fails, mb add it as optional
 	mClientAdd := model.NewMockDNSApiClient(t)
 	mClientAdd.EXPECT().AddRecords(mCtx, mDom, mRecs).Return(nil).Once()
 	mClientAdd.EXPECT().GetRecords(mCtx, mDom, mType, mName).Return(mRecs, nil)

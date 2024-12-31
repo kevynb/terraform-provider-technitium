@@ -142,7 +142,7 @@ func TestSetRecords_ProperFormat(t *testing.T) {
 				return
 			}
 			if req[0] != expected[0] {
-				reply := apiErrorResponce{
+				reply := apiErrorResponse{
 					Error: "BAD_FORMAT",
 					Message: fmt.Sprintf("unexpected request: want %v, got %v",
 						expected, req),
