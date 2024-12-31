@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/veksh/terraform-provider-godaddy-dns/internal/model"
+	"github.com/kevynb/terraform-provider-technitium/internal/model"
 )
 
 const HTTPReplySometingCN = `

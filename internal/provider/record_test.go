@@ -22,9 +22,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/kevynb/terraform-provider-technitium/internal/client"
+	"github.com/kevynb/terraform-provider-technitium/internal/model"
 	"github.com/stretchr/testify/mock"
-	"github.com/veksh/terraform-provider-godaddy-dns/internal/client"
-	"github.com/veksh/terraform-provider-godaddy-dns/internal/model"
 )
 
 var (
