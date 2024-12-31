@@ -557,7 +557,7 @@ func (r *RecordResource) Delete(ctx context.Context, req resource.DeleteRequest,
 func (r *RecordResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.AddError(
 		"Unsupported feature",
-		fmt.Sprintf("The import feature is currently not supported, PRs welcome.", req.ID),
+		fmt.Sprintf("The import feature is currently not supported, PRs welcome."),
 	)
 	return
 }
