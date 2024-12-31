@@ -5,7 +5,7 @@ The Technitium DNS provider for Terraform enables the management of individual D
 ## Features
 
 - **Granular Record Management**: Manage individual DNS records (`A`, `AAAA`, `CNAME`, `MX`, `TXT`, `SRV`, and more) without affecting the rest of the domain configuration.
-- **Support for Diverse Record Types**: Covers all common DNS record types, including `A`, `AAAA`, `CNAME`, `MX`, `NS`, `TXT`, `SRV`, `PTR`, `NAPTR`, `CAA`, `ANAME`, `URI`, and `TLSA`.
+- **Support for Diverse Record Types**: Covers all common DNS record types, including `A`, `AAAA`, `CNAME`, `MX`, `NS`, `TXT`, `SRV`, `PTR`, `NAPTR`, `CAA`, `ANAME`, `URI`, and `TLSA`. Special types like `FWD` and `APP` are also supported.
 - **Preserve Existing Records**: Modifications made outside Terraform are respected; only managed records are updated or destroyed.
 - **Incremental Updates**: Safely manage subsets of DNS records without disrupting others in the same zone.
 

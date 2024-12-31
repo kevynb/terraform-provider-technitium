@@ -18,8 +18,8 @@ permissions:
 
 env:
   # for acceptance tests on real infra
-  GODADDY_API_KEY: ${{ secrets.GODADDY_API_KEY }}
-  GODADDY_API_SECRET: ${{ secrets.GODADDY_API_SECRET }}
+  TECHNITIUM_API_URL: ${{ secrets.TECHNITIUM_API_URL }}
+  TECHNITIUM_API_TOKEN: ${{ secrets.TECHNITIUM_API_TOKEN }}
 
 jobs:
   # Ensure project builds before running testing matrix
