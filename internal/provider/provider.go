@@ -35,7 +35,7 @@ func (p *TechnitiumDNSProvider) Metadata(ctx context.Context, req provider.Metad
 
 // have to match schema
 type TechnitiumDNSProviderModel struct {
-	APIURL                      types.String `tfsdk:"api_url"`
+	APIURL                      types.String `tfsdk:"url"`
 	Token                       types.String `tfsdk:"token"`
 	SkipCertificateVerification types.Bool   `tfsdk:"skip_certificate_verification"`
 }
@@ -46,8 +46,8 @@ func (p *TechnitiumDNSProvider) Schema(ctx context.Context, req provider.SchemaR
 		// see https://github.com/hashicorp/terraform-provider-tls/blob/main/templates/index.md.tmpl
 		MarkdownDescription: "Technitium DNS provider",
 		Attributes: map[string]schema.Attribute{
-			"api_url": schema.StringAttribute{
-				MarkdownDescription: "The Technitium API base URL.",
+			"url": schema.StringAttribute{
+				MarkdownDescription: "The Technitium server URL.",
 				Required:            true,
 			},
 			"token": schema.StringAttribute{
@@ -74,11 +74,11 @@ func (p *TechnitiumDNSProvider) Configure(ctx context.Context, req provider.Conf
 	}
 	if apiURL == "" {
 		resp.Diagnostics.AddAttributeError(
-			path.Root("api_url"),
-			"Missing API URL Configuration",
-			"While configuring the provider, the API url was not found in "+
+			path.Root("url"),
+			"Missing server URL Configuration",
+			"While configuring the provider, the technitium server url was not found in "+
 				"the TECHNITIUM_API_URL environment variable or provider "+
-				"configuration block api_url attribute.",
+				"configuration block url attribute.",
 		)
 		return
 	}

@@ -33,8 +33,8 @@ Alternatively, credentials can be provided directly in the provider block:
 
 ```hcl
 provider "technitium" {
-  api_url = "https://your-technitium-server/api"
-  api_token = "your-api-token"
+   url   = "https://your-technitium-server/api"
+   token = "your-api-token"
 }
 ```
 

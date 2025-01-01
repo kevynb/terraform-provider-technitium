@@ -16,8 +16,8 @@ Example:
 
 ```terraform
 provider "technitium" {
-  api_url  = "https://your-technitium-server/api"
-  api_token = "your-api-token"
+  url = "https://your-technitium-server:53443"
+  token = "your-api-token"
 }
 ```
 
@@ -25,8 +25,9 @@ provider "technitium" {
 
 ### Optional
 
-- `api_url` (String): Technitium API base URL.
-- `api_token` (String, Sensitive): Technitium API token for authentication.
+- `url` (String): Technitium server base URL.
+- `token` (String, Sensitive): Technitium API token for authentication.
+- `skip_certificate_verification` (Boolean): Should the provider skip certificate verification. Useful for self-signed certificates.
 
 ## DNS Record Resource: `technitium_record`
 
