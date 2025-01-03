@@ -74,7 +74,6 @@ resource "technitium_record" "app_record" {
 - **`app_name`** (String): Application name for `APP` records.
 - **`class_path`** (String): Class path for `APP` records.
 - **`record_data`** (String): JSON-encoded data for `APP` records.
-- **`comments`** (String): Optional comments associated with the record.
 - **`ptr`** (Boolean): Create a PTR record for `A` or `AAAA` records (default: `false`).
 - **`create_ptr_zone`** (Boolean): Automatically create a PTR zone for `A` or `AAAA` records (default: `false`).
 - **`update_svcb_hints`** (Boolean): Update SVCB hints for `A` or `AAAA` records (default: `false`).

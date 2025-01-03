@@ -31,7 +31,6 @@ type tfDNSRecord struct {
 	Type                           types.String `tfsdk:"type"`
 	Domain                         types.String `tfsdk:"domain"`
 	TTL                            types.Int64  `tfsdk:"ttl"`
-	Comments                       types.String `tfsdk:"comments"`
 	IPAddress                      types.String `tfsdk:"ip_address"`
 	Ptr                            types.Bool   `tfsdk:"ptr"`
 	CreatePtrZone                  types.Bool   `tfsdk:"create_ptr_zone"`
@@ -136,10 +135,6 @@ func (r *RecordResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				Validators: []validator.Int64{
 					int64validator.Between(0, 604800),
 				},
-			},
-			"comments": schema.StringAttribute{
-				MarkdownDescription: "Optional comments for the DNS record.",
-				Optional:            true,
 			},
 			"ip_address": schema.StringAttribute{
 				MarkdownDescription: "The IP address for A or AAAA records.",
@@ -569,7 +564,6 @@ func setLogCtx(ctx context.Context, tfRec tfDNSRecord, op string) context.Contex
 		"type":                              tfRec.Type.ValueString(),
 		"domain":                            tfRec.Domain.ValueString(),
 		"ttl":                               tfRec.TTL.ValueInt64(),
-		"comments":                          tfRec.Comments.ValueString(),
 		"ip_address":                        tfRec.IPAddress.ValueString(),
 		"ptr":                               tfRec.Ptr.ValueBool(),
 		"create_ptr_zone":                   tfRec.CreatePtrZone.ValueBool(),
@@ -646,7 +640,6 @@ func tf2model(tfData tfDNSRecord) model.DNSRecord {
 		Type:                           model.DNSRecordType(tfData.Type.ValueString()),
 		Domain:                         model.DNSRecordName(tfData.Domain.ValueString()),
 		TTL:                            model.DNSRecordTTL(tfData.TTL.ValueInt64()),
-		Comments:                       tfData.Comments.ValueString(),
 		IPAddress:                      tfData.IPAddress.ValueString(),
 		Ptr:                            tfData.Ptr.ValueBool(),
 		CreatePtrZone:                  tfData.CreatePtrZone.ValueBool(),
@@ -721,9 +714,6 @@ func model2tf(apiData model.DNSRecord) (tfData tfDNSRecord) {
 	}
 	if apiData.TTL != 0 {
 		record.TTL = types.Int64Value(int64(apiData.TTL))
-	}
-	if apiData.Comments != "" {
-		record.Comments = types.StringValue(apiData.Comments)
 	}
 	if apiData.IPAddress != "" {
 		record.IPAddress = types.StringValue(apiData.IPAddress)

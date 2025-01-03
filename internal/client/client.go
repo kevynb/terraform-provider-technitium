@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	HTTP_TIMEOUT = 10
-	DOMAINS_URL  = "/api/zones/records"
+	HTTP_TIMEOUT               = 10
+	DOMAINS_URL                = "/api/zones/records"
+	TERRAFORM_PROVIDER_COMMENT = "Managed by terraform"
 )
 
 const (
@@ -75,10 +76,10 @@ type apiDNSRecordResponseItem struct {
 	Domain   string                        `json:"name,omitempty"`
 	Disabled bool                          `json:"disabled,omitempty"`
 	TTL      uint32                        `json:"ttl"`
+	Comments string                        `json:"comments,omitempty"`
 	RData    apiDNSRecordResponseItemRdata `json:"rData,omitempty"`
 }
 type apiDNSRecordResponseItemRdata struct {
-	Comments                       string `json:"comments,omitempty"`
 	ExpiryTTL                      uint32 `json:"expiryTtl,omitempty"`
 	IPAddress                      string `json:"ipAddress,omitempty"`
 	Ptr                            bool   `json:"ptr,omitempty"`
@@ -231,11 +232,7 @@ func (c Client) AddRecord(ctx context.Context, record model.DNSRecord) error {
 		"ttl":    {fmt.Sprintf("%d", record.TTL)},
 	}
 
-	comments := "TF-managed"
-	if record.Comments != "" {
-		comments = comments + ": " + record.Comments
-	}
-	formData.Add("comments", comments)
+	formData.Add("comments", TERRAFORM_PROVIDER_COMMENT)
 
 	if record.ExpiryTTL > 0 {
 		formData.Add("expiryTtl", fmt.Sprintf("%d", record.ExpiryTTL))
@@ -448,11 +445,8 @@ func (c Client) UpdateRecord(ctx context.Context, oldRecord model.DNSRecord, new
 		formData.Add("newIpAddress", newRecord.IPAddress)
 	}
 
-	comment := oldRecord.Comments
-	if newRecord.Comments != "" {
-		comment = "TF-managed: " + newRecord.Comments
-	}
-	formData.Add("comments", comment)
+	// Reset it on update in case it was missed or updated manually the first time.
+	formData.Add("comments", TERRAFORM_PROVIDER_COMMENT)
 
 	if newRecord.ExpiryTTL > 0 {
 		formData.Add("expiryTtl", fmt.Sprintf("%d", newRecord.ExpiryTTL))
@@ -970,7 +964,7 @@ func mapAPIDNSRecordToDNSRecord(apiRecord apiDNSRecordResponseItem) model.DNSRec
 
 		TTL: model.DNSRecordTTL(apiRecord.TTL),
 
-		Comments:  apiRecord.RData.Comments,
+		Comments:  apiRecord.Comments,
 		ExpiryTTL: model.DNSRecordTTL(apiRecord.RData.ExpiryTTL),
 
 		IPAddress:       apiRecord.RData.IPAddress,
