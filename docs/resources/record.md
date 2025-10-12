@@ -121,4 +121,23 @@ Additional optional fields may be supported based on record type. Their name sho
 
 ## Import
 
-Import is currently not supported. This will need to be added. PRs welcome.
+Import existing DNS records using the format `zone:name:TYPE:value`.
+
+### Examples
+
+```bash
+# Import a CNAME record
+terraform import technitium_record.example example.com:www:CNAME:target.example.com
+
+# Import an A record
+terraform import technitium_record.example example.com:@:A:192.168.1.100
+
+# Import an MX record
+terraform import technitium_record.example example.com:@:MX:10 mail.example.com
+```
+
+The import ID format is `zone:name:TYPE:value` where:
+- `zone` is the DNS zone name (e.g., `example.com`)
+- `name` is the record name within the zone (use `@` for the zone apex)
+- `TYPE` is the DNS record type (e.g., `CNAME`, `A`, `MX`)
+- `value` is the record value (e.g., target for CNAME, IP for A, "preference exchange" for MX)
