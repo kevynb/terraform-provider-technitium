@@ -467,6 +467,8 @@ func (r *RecordResource) Read(ctx context.Context, req resource.ReadRequest, res
 		for _, dnsRecordFromApi := range allRecordsFromApi {
 			tflog.Debug(ctx, fmt.Sprintf("Got DNS record: %v", dnsRecordFromApi))
 			println("dnsRecordFromApi", dnsRecordFromApi.Domain, "dnsRecordFromState", dnsRecordFromState.Domain)
+			println("dnsRecordFromApi.Type", dnsRecordFromApi.Type, "dnsRecordFromState.Type", dnsRecordFromState.Type)
+			println("dnsRecordFromApi.IPAddress", dnsRecordFromApi.IPAddress, "dnsRecordFromState.IPAddress", dnsRecordFromState.IPAddress)
 			if dnsRecordFromApi.SameKey(dnsRecordFromState) {
 				tflog.Info(ctx, "matching DNS record found")
 				stateData = model2tf(dnsRecordFromApi)

@@ -958,10 +958,13 @@ func (c Client) DeleteRecord(ctx context.Context, record model.DNSRecord) error 
 }
 
 func constructFullDomain(name, zone string) string {
-	if name == "@" {
+	if name == "@" || name == "" {
 		return zone
 	}
 	if strings.HasSuffix(name, "."+zone) {
+		return name
+	}
+	if name == zone {
 		return name
 	}
 	return name + "." + zone
