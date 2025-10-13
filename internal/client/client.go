@@ -12,13 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kevynb/terraform-provider-technitium/internal/model"
+	"github.com/dscain/terraform-provider-technitium/internal/model"
 	"github.com/pkg/errors"
 )
 
 const (
 	HTTP_TIMEOUT               = 10
 	DOMAINS_URL                = "/api/zones/records"
+	ZONES_URL                  = "/api/zones"
 	TERRAFORM_PROVIDER_COMMENT = "Managed by terraform"
 )
 
@@ -197,6 +198,66 @@ func (c Client) makeRecordsRequest(ctx context.Context, path string, method stri
 			logMessage = fmt.Sprintf("%s (Inner: %s)", logMessage, apiResponse.InnerErrorMessage)
 		}
 		return errors.New(logMessage)
+	}
+
+	return nil
+}
+
+func (c Client) makeZonesRequest(ctx context.Context, path string, method string, queryParams url.Values, formData url.Values, apiResponse interface{}) error {
+	// Ensure the token is always set
+	if method == http.MethodGet {
+		if queryParams == nil {
+			queryParams = url.Values{}
+		}
+		queryParams.Set("token", c.token)
+	} else if method == http.MethodPost {
+		if formData == nil {
+			formData = url.Values{}
+		}
+		formData.Set("token", c.token)
+	}
+
+	var requestURL string
+	var body io.Reader
+	if method == http.MethodGet {
+		requestURL = fmt.Sprintf("%s%s%s?%s", c.apiURL, ZONES_URL, path, queryParams.Encode())
+	} else {
+		requestURL = fmt.Sprintf("%s%s%s", c.apiURL, ZONES_URL, path)
+		body = strings.NewReader(formData.Encode())
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, requestURL, body)
+	if err != nil {
+		return errors.Wrap(err, "cannot create HTTP request")
+	}
+
+	if method == http.MethodPost {
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "HTTP request error")
+	}
+	defer resp.Body.Close()
+
+	// Parse response to check for API errors
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		return errors.Wrap(err, "cannot decode JSON response into the provided structure")
+	}
+
+	// Check for API errors - this assumes the response has Status field
+	if responseMap, ok := apiResponse.(map[string]interface{}); ok {
+		if status, exists := responseMap["status"]; exists && status != StatusOK {
+			logMessage := "API error"
+			if errorMsg, exists := responseMap["errorMessage"]; exists {
+				logMessage = fmt.Sprintf("API error: %s", errorMsg)
+			}
+			if innerErrorMsg, exists := responseMap["innerErrorMessage"]; exists && innerErrorMsg != "" {
+				logMessage = fmt.Sprintf("%s (Inner: %s)", logMessage, innerErrorMsg)
+			}
+			return errors.New(logMessage)
+		}
 	}
 
 	return nil
@@ -955,6 +1016,47 @@ func (c Client) DeleteRecord(ctx context.Context, record model.DNSRecord) error 
 	}
 
 	return c.makeRecordsRequest(ctx, "/delete", http.MethodGet, params, nil, nil)
+}
+
+// ListZones retrieves all DNS zones from the server.
+func (c Client) ListZones(ctx context.Context) ([]model.DNSZone, error) {
+	var apiResponse struct {
+		Response struct {
+			Zones []model.DNSZone `json:"zones"`
+		} `json:"response"`
+		Status string `json:"status"`
+	}
+
+	err := c.makeZonesRequest(ctx, "/list", http.MethodGet, nil, nil, &apiResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return apiResponse.Response.Zones, nil
+}
+
+// CreateZone creates a new DNS zone.
+func (c Client) CreateZone(ctx context.Context, zone model.DNSZone) error {
+	formData := url.Values{
+		"zone": {zone.Name},
+		"type": {string(zone.Type)},
+	}
+
+	// Add optional parameters based on zone type
+	if zone.Type == model.ZONE_SECONDARY || zone.Type == model.ZONE_STUB {
+		// Add primary name server addresses if needed
+	}
+
+	return c.makeZonesRequest(ctx, "/create", http.MethodPost, nil, formData, nil)
+}
+
+// DeleteZone deletes a DNS zone.
+func (c Client) DeleteZone(ctx context.Context, zoneName string) error {
+	formData := url.Values{
+		"zone": {zoneName},
+	}
+
+	return c.makeZonesRequest(ctx, "/delete", http.MethodPost, nil, formData, nil)
 }
 
 func constructFullDomain(name, zone string) string {

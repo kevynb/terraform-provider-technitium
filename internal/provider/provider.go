@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/kevynb/terraform-provider-technitium/internal/model"
+	"github.com/dscain/terraform-provider-technitium/internal/model"
 )
 
 // https://pkg.go.dev/github.com/hashicorp/terraform-plugin-framework/provider
@@ -119,6 +119,7 @@ func (p *TechnitiumDNSProvider) Configure(ctx context.Context, req provider.Conf
 func (p *TechnitiumDNSProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		RecordResourceFactory(&p.reqMutex),
+		ZoneResourceFactory(&p.reqMutex),
 	}
 }
 

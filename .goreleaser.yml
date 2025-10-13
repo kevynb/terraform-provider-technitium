@@ -52,4 +52,8 @@ release:
   # draft: true
 changelog:
   disable: true
+terraform:
+  cloud:
+    username: dscain
+    namespace: dscain
 version: 2

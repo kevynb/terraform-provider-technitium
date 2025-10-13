@@ -2,7 +2,7 @@ default: build
 .PHONY: build test testacc docs local
 
 PROJ := technitium
-ORG := kevynb
+ORG := dscain
 
 BINARY := terraform-provider-$(PROJ)
 VERSION := $(shell git describe --tags --always)
