@@ -806,6 +806,9 @@ func model2tf(apiData model.DNSRecord) (tfData tfDNSRecord) {
 	if apiData.IPAddress != "" {
 		record.IPAddress = types.StringValue(apiData.IPAddress)
 	}
+	if apiData.Value != "" {
+		record.Value = types.StringValue(apiData.Value)
+	}
 	if apiData.Ptr != false {
 		record.Ptr = types.BoolValue(apiData.Ptr)
 	}
