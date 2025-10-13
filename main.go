@@ -7,10 +7,10 @@ import (
 	"flag"
 	"log"
 
+	"github.com/dscain/terraform-provider-technitium/internal/client"
+	"github.com/dscain/terraform-provider-technitium/internal/model"
+	"github.com/dscain/terraform-provider-technitium/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/kevynb/terraform-provider-technitium/internal/client"
-	"github.com/kevynb/terraform-provider-technitium/internal/model"
-	"github.com/kevynb/terraform-provider-technitium/internal/provider"
 )
 
 var (
@@ -27,7 +27,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/kevynb/technitium",
+		Address: "registry.terraform.io/dscain/technitium",
 		Debug:   debug,
 	}
 

@@ -3,10 +3,14 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 
+	"github.com/dscain/terraform-provider-technitium/internal/model"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -14,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/kevynb/terraform-provider-technitium/internal/model"
 )
 
 // import separator
@@ -28,6 +31,7 @@ var (
 )
 
 type tfDNSRecord struct {
+	Zone                           types.String `tfsdk:"zone"`
 	Type                           types.String `tfsdk:"type"`
 	Domain                         types.String `tfsdk:"domain"`
 	TTL                            types.Int64  `tfsdk:"ttl"`
@@ -112,6 +116,10 @@ func (r *RecordResource) Schema(ctx context.Context, req resource.SchemaRequest,
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a DNS record in Technitium DNS Server.",
 		Attributes: map[string]schema.Attribute{
+			"zone": schema.StringAttribute{
+				MarkdownDescription: "The DNS zone name. If not specified, it will be inferred from the domain.",
+				Optional:            true,
+			},
 			"type": schema.StringAttribute{
 				MarkdownDescription: "The DNS record type (e.g., A, AAAA, CNAME, etc.).",
 				Required:            true,
@@ -463,10 +471,9 @@ func (r *RecordResource) Read(ctx context.Context, req resource.ReadRequest, res
 		// Look for a matching record to define if the resource was changed.
 		for _, dnsRecordFromApi := range allRecordsFromApi {
 			tflog.Debug(ctx, fmt.Sprintf("Got DNS record: %v", dnsRecordFromApi))
-			println("dnsRecordFromApi", dnsRecordFromApi.Domain, "dnsRecordFromState", dnsRecordFromState.Domain)
 			if dnsRecordFromApi.SameKey(dnsRecordFromState) {
 				tflog.Info(ctx, "matching DNS record found")
-				stateData = model2tf(dnsRecordFromApi)
+				model2tf(dnsRecordFromApi, &stateData)
 				tflog.Info(ctx, " AutoIpv6Hint value "+stateData.AutoIpv6Hint.String())
 				numFound += 1
 			}
@@ -547,20 +554,107 @@ func (r *RecordResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 }
 
-// terraform import technitium_record.new-cname domain:CNAME:_test:testing.com
-// Not implemented for now, need to find a good way given all of the possible parameters.
+// terraform import technitium_record.new-cname zone:name:TYPE:value
 func (r *RecordResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resp.Diagnostics.AddError(
-		"Unsupported feature",
-		fmt.Sprintf("The import feature is currently not supported, PRs welcome."),
-	)
-	return
+	id := req.ID
+
+	// Parse the import ID: zone:name:TYPE:value
+	parts := strings.Split(id, IMPORT_SEP)
+	if len(parts) != 4 {
+		resp.Diagnostics.AddError(
+			"Invalid import ID",
+			fmt.Sprintf("Import ID must be in format 'zone:name:TYPE:value', got: %s", id),
+		)
+		return
+	}
+
+	zone := parts[0]
+	name := parts[1]
+	recordType := parts[2]
+	value := parts[3]
+
+	// Construct full domain name
+	var domain string
+	if name == "@" {
+		domain = zone
+	} else {
+		domain = name + "." + zone
+	}
+
+	// Set the domain and type
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("domain"), domain)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), recordType)...)
+
+	// Set the value based on record type
+	switch recordType {
+	case "A", "AAAA":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("ip_address"), value)...)
+	case "CNAME":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("cname"), value)...)
+	case "MX":
+		// MX format: preference exchange
+		mxParts := strings.SplitN(value, " ", 2)
+		if len(mxParts) == 2 {
+			if pref, err := strconv.ParseInt(mxParts[0], 10, 64); err == nil {
+				resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("preference"), pref)...)
+			}
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("exchange"), mxParts[1])...)
+		}
+	case "NS":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name_server"), value)...)
+	case "PTR":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("ptr_name"), value)...)
+	case "SRV":
+		// SRV format: priority weight port target
+		srvParts := strings.Split(value, " ")
+		if len(srvParts) >= 4 {
+			if prio, err := strconv.ParseInt(srvParts[0], 10, 64); err == nil {
+				resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("priority"), prio)...)
+			}
+			if weight, err := strconv.ParseInt(srvParts[1], 10, 64); err == nil {
+				resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("weight"), weight)...)
+			}
+			if port, err := strconv.ParseInt(srvParts[2], 10, 64); err == nil {
+				resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("port"), port)...)
+			}
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("target"), srvParts[3])...)
+		}
+	case "TXT":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("text"), value)...)
+	case "CAA":
+		// CAA format: flags tag value
+		caaParts := strings.SplitN(value, " ", 3)
+		if len(caaParts) >= 3 {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("flags"), caaParts[0])...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("tag"), caaParts[1])...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("value"), caaParts[2])...)
+		}
+	default:
+		// For other record types, try to set a generic value field if it exists
+		switch recordType {
+		case "ANAME":
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("aname"), value)...)
+		case "DNAME":
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("dname"), value)...)
+		case "FWD":
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("forwarder"), value)...)
+		case "URI":
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uri"), value)...)
+		default:
+			// For complex records or unknown types, set record_data
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("record_data"), value)...)
+		}
+	}
+
+	// Set a default TTL since it's required
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("ttl"), int64(3600))...)
 }
 
 // add record fields to context; export TF_LOG=debug to view
 func setLogCtx(ctx context.Context, tfRec tfDNSRecord, op string) context.Context {
 	logAttributes := map[string]interface{}{
 		"operation":                         op,
+		"zone":                              tfRec.Zone.ValueString(),
 		"type":                              tfRec.Type.ValueString(),
 		"domain":                            tfRec.Domain.ValueString(),
 		"ttl":                               tfRec.TTL.ValueInt64(),
@@ -703,194 +797,194 @@ func tf2model(tfData tfDNSRecord) model.DNSRecord {
 }
 
 // convert from api data model into terraform data model
-func model2tf(apiData model.DNSRecord) (tfData tfDNSRecord) {
-	record := tfDNSRecord{}
-
+func model2tf(apiData model.DNSRecord, tfData *tfDNSRecord) {
 	if apiData.Type != "" {
-		record.Type = types.StringValue(string(apiData.Type))
+		tfData.Type = types.StringValue(string(apiData.Type))
 	}
 	if apiData.Domain != "" {
-		record.Domain = types.StringValue(string(apiData.Domain))
+		tfData.Domain = types.StringValue(string(apiData.Domain))
 	}
 	if apiData.TTL != 0 {
-		record.TTL = types.Int64Value(int64(apiData.TTL))
+		tfData.TTL = types.Int64Value(int64(apiData.TTL))
 	}
 	if apiData.IPAddress != "" {
-		record.IPAddress = types.StringValue(apiData.IPAddress)
-	}
-	if apiData.Ptr != false {
-		record.Ptr = types.BoolValue(apiData.Ptr)
-	}
-	if apiData.CreatePtrZone != false {
-		record.CreatePtrZone = types.BoolValue(apiData.CreatePtrZone)
-	}
-	if apiData.UpdateSvcbHints != false {
-		record.UpdateSvcbHints = types.BoolValue(apiData.UpdateSvcbHints)
-	}
-	if apiData.NameServer != "" {
-		record.NameServer = types.StringValue(apiData.NameServer)
-	}
-	if apiData.Glue != "" {
-		record.Glue = types.StringValue(apiData.Glue)
-	}
-	if apiData.CName != "" {
-		record.CName = types.StringValue(apiData.CName)
-	}
-	if apiData.PtrName != "" {
-		record.PtrName = types.StringValue(apiData.PtrName)
-	}
-	if apiData.Exchange != "" {
-		record.Exchange = types.StringValue(apiData.Exchange)
-	}
-	if apiData.Preference != 0 {
-		record.Preference = types.Int64Value(int64(apiData.Preference))
-	}
-	if apiData.Text != "" {
-		record.Text = types.StringValue(apiData.Text)
-	}
-	if apiData.SplitText != false {
-		record.SplitText = types.BoolValue(apiData.SplitText)
-	}
-	if apiData.Mailbox != "" {
-		record.Mailbox = types.StringValue(apiData.Mailbox)
-	}
-	if apiData.TxtDomain != "" {
-		record.TxtDomain = types.StringValue(apiData.TxtDomain)
-	}
-	if apiData.Priority != 0 {
-		record.Priority = types.Int64Value(int64(apiData.Priority))
-	}
-	if apiData.Weight != 0 {
-		record.Weight = types.Int64Value(int64(apiData.Weight))
-	}
-	if apiData.Port != 0 {
-		record.Port = types.Int64Value(int64(apiData.Port))
-	}
-	if apiData.Target != "" {
-		record.Target = types.StringValue(string(apiData.Target))
-	}
-	if apiData.NaptrOrder != 0 {
-		record.NaptrOrder = types.Int64Value(int64(apiData.NaptrOrder))
-	}
-	if apiData.NaptrPreference != 0 {
-		record.NaptrPreference = types.Int64Value(int64(apiData.NaptrPreference))
-	}
-	if apiData.NaptrFlags != "" {
-		record.NaptrFlags = types.StringValue(apiData.NaptrFlags)
-	}
-	if apiData.NaptrServices != "" {
-		record.NaptrServices = types.StringValue(apiData.NaptrServices)
-	}
-	if apiData.NaptrRegexp != "" {
-		record.NaptrRegexp = types.StringValue(apiData.NaptrRegexp)
-	}
-	if apiData.NaptrReplacement != "" {
-		record.NaptrReplacement = types.StringValue(apiData.NaptrReplacement)
-	}
-	if apiData.DName != "" {
-		record.DName = types.StringValue(apiData.DName)
-	}
-	if apiData.KeyTag != 0 {
-		record.KeyTag = types.Int64Value(int64(apiData.KeyTag))
-	}
-	if apiData.Algorithm != "" {
-		record.Algorithm = types.StringValue(apiData.Algorithm)
-	}
-	if apiData.DigestType != "" {
-		record.DigestType = types.StringValue(apiData.DigestType)
-	}
-	if apiData.Digest != "" {
-		record.Digest = types.StringValue(apiData.Digest)
-	}
-	if apiData.SshfpAlgorithm != "" {
-		record.SshfpAlgorithm = types.StringValue(apiData.SshfpAlgorithm)
-	}
-	if apiData.SshfpFingerprintType != "" {
-		record.SshfpFingerprintType = types.StringValue(apiData.SshfpFingerprintType)
-	}
-	if apiData.SshfpFingerprint != "" {
-		record.SshfpFingerprint = types.StringValue(apiData.SshfpFingerprint)
-	}
-	if apiData.TlsaCertificateUsage != "" {
-		record.TlsaCertificateUsage = types.StringValue(apiData.TlsaCertificateUsage)
-	}
-	if apiData.TlsaSelector != "" {
-		record.TlsaSelector = types.StringValue(apiData.TlsaSelector)
-	}
-	if apiData.TlsaMatchingType != "" {
-		record.TlsaMatchingType = types.StringValue(apiData.TlsaMatchingType)
-	}
-	if apiData.TlsaCertificateAssociationData != "" {
-		record.TlsaCertificateAssociationData = types.StringValue(apiData.TlsaCertificateAssociationData)
-	}
-	if apiData.SvcPriority != 0 {
-		record.SvcPriority = types.Int64Value(int64(apiData.SvcPriority))
-	}
-	if apiData.SvcTargetName != "" {
-		record.SvcTargetName = types.StringValue(apiData.SvcTargetName)
-	}
-	if apiData.SvcParams != "" {
-		record.SvcParams = types.StringValue(apiData.SvcParams)
-	}
-	if apiData.AutoIpv4Hint != false {
-		record.AutoIpv4Hint = types.BoolValue(apiData.AutoIpv4Hint)
-	}
-	if apiData.AutoIpv6Hint != false {
-		record.AutoIpv6Hint = types.BoolValue(apiData.AutoIpv6Hint)
-	}
-	if apiData.UriPriority != 0 {
-		record.UriPriority = types.Int64Value(int64(apiData.UriPriority))
-	}
-	if apiData.UriWeight != 0 {
-		record.UriWeight = types.Int64Value(int64(apiData.UriWeight))
-	}
-	if apiData.Uri != "" {
-		record.Uri = types.StringValue(apiData.Uri)
-	}
-	if apiData.Flags != "" {
-		record.Flags = types.StringValue(apiData.Flags)
-	}
-	if apiData.Tag != "" {
-		record.Tag = types.StringValue(apiData.Tag)
+		tfData.IPAddress = types.StringValue(apiData.IPAddress)
 	}
 	if apiData.Value != "" {
-		record.Value = types.StringValue(apiData.Value)
+		tfData.Value = types.StringValue(apiData.Value)
+	}
+	if apiData.Ptr {
+		tfData.Ptr = types.BoolValue(apiData.Ptr)
+	}
+	if apiData.CreatePtrZone {
+		tfData.CreatePtrZone = types.BoolValue(apiData.CreatePtrZone)
+	}
+	if apiData.UpdateSvcbHints {
+		tfData.UpdateSvcbHints = types.BoolValue(apiData.UpdateSvcbHints)
+	}
+	if apiData.NameServer != "" {
+		tfData.NameServer = types.StringValue(apiData.NameServer)
+	}
+	if apiData.Glue != "" {
+		tfData.Glue = types.StringValue(apiData.Glue)
+	}
+	if apiData.CName != "" {
+		tfData.CName = types.StringValue(apiData.CName)
+	}
+	if apiData.PtrName != "" {
+		tfData.PtrName = types.StringValue(apiData.PtrName)
+	}
+	if apiData.Exchange != "" {
+		tfData.Exchange = types.StringValue(apiData.Exchange)
+	}
+	if apiData.Preference != 0 {
+		tfData.Preference = types.Int64Value(int64(apiData.Preference))
+	}
+	if apiData.Text != "" {
+		tfData.Text = types.StringValue(apiData.Text)
+	}
+	if apiData.SplitText {
+		tfData.SplitText = types.BoolValue(apiData.SplitText)
+	}
+	if apiData.Mailbox != "" {
+		tfData.Mailbox = types.StringValue(apiData.Mailbox)
+	}
+	if apiData.TxtDomain != "" {
+		tfData.TxtDomain = types.StringValue(apiData.TxtDomain)
+	}
+	if apiData.Priority != 0 {
+		tfData.Priority = types.Int64Value(int64(apiData.Priority))
+	}
+	if apiData.Weight != 0 {
+		tfData.Weight = types.Int64Value(int64(apiData.Weight))
+	}
+	if apiData.Port != 0 {
+		tfData.Port = types.Int64Value(int64(apiData.Port))
+	}
+	if apiData.Target != "" {
+		tfData.Target = types.StringValue(string(apiData.Target))
+	}
+	if apiData.NaptrOrder != 0 {
+		tfData.NaptrOrder = types.Int64Value(int64(apiData.NaptrOrder))
+	}
+	if apiData.NaptrPreference != 0 {
+		tfData.NaptrPreference = types.Int64Value(int64(apiData.NaptrPreference))
+	}
+	if apiData.NaptrFlags != "" {
+		tfData.NaptrFlags = types.StringValue(apiData.NaptrFlags)
+	}
+	if apiData.NaptrServices != "" {
+		tfData.NaptrServices = types.StringValue(apiData.NaptrServices)
+	}
+	if apiData.NaptrRegexp != "" {
+		tfData.NaptrRegexp = types.StringValue(apiData.NaptrRegexp)
+	}
+	if apiData.NaptrReplacement != "" {
+		tfData.NaptrReplacement = types.StringValue(apiData.NaptrReplacement)
+	}
+	if apiData.DName != "" {
+		tfData.DName = types.StringValue(apiData.DName)
+	}
+	if apiData.KeyTag != 0 {
+		tfData.KeyTag = types.Int64Value(int64(apiData.KeyTag))
+	}
+	if apiData.Algorithm != "" {
+		tfData.Algorithm = types.StringValue(apiData.Algorithm)
+	}
+	if apiData.DigestType != "" {
+		tfData.DigestType = types.StringValue(apiData.DigestType)
+	}
+	if apiData.Digest != "" {
+		tfData.Digest = types.StringValue(apiData.Digest)
+	}
+	if apiData.SshfpAlgorithm != "" {
+		tfData.SshfpAlgorithm = types.StringValue(apiData.SshfpAlgorithm)
+	}
+	if apiData.SshfpFingerprintType != "" {
+		tfData.SshfpFingerprintType = types.StringValue(apiData.SshfpFingerprintType)
+	}
+	if apiData.SshfpFingerprint != "" {
+		tfData.SshfpFingerprint = types.StringValue(apiData.SshfpFingerprint)
+	}
+	if apiData.TlsaCertificateUsage != "" {
+		tfData.TlsaCertificateUsage = types.StringValue(apiData.TlsaCertificateUsage)
+	}
+	if apiData.TlsaSelector != "" {
+		tfData.TlsaSelector = types.StringValue(apiData.TlsaSelector)
+	}
+	if apiData.TlsaMatchingType != "" {
+		tfData.TlsaMatchingType = types.StringValue(apiData.TlsaMatchingType)
+	}
+	if apiData.TlsaCertificateAssociationData != "" {
+		tfData.TlsaCertificateAssociationData = types.StringValue(apiData.TlsaCertificateAssociationData)
+	}
+	if apiData.SvcPriority != 0 {
+		tfData.SvcPriority = types.Int64Value(int64(apiData.SvcPriority))
+	}
+	if apiData.SvcTargetName != "" {
+		tfData.SvcTargetName = types.StringValue(apiData.SvcTargetName)
+	}
+	if apiData.SvcParams != "" {
+		tfData.SvcParams = types.StringValue(apiData.SvcParams)
+	}
+	if apiData.AutoIpv4Hint {
+		tfData.AutoIpv4Hint = types.BoolValue(apiData.AutoIpv4Hint)
+	}
+	if apiData.AutoIpv6Hint {
+		tfData.AutoIpv6Hint = types.BoolValue(apiData.AutoIpv6Hint)
+	}
+	if apiData.UriPriority != 0 {
+		tfData.UriPriority = types.Int64Value(int64(apiData.UriPriority))
+	}
+	if apiData.UriWeight != 0 {
+		tfData.UriWeight = types.Int64Value(int64(apiData.UriWeight))
+	}
+	if apiData.Uri != "" {
+		tfData.Uri = types.StringValue(apiData.Uri)
+	}
+	if apiData.Flags != "" {
+		tfData.Flags = types.StringValue(apiData.Flags)
+	}
+	if apiData.Tag != "" {
+		tfData.Tag = types.StringValue(apiData.Tag)
+	}
+	if apiData.Value != "" {
+		tfData.Value = types.StringValue(apiData.Value)
 	}
 	if apiData.AName != "" {
-		record.AName = types.StringValue(apiData.AName)
+		tfData.AName = types.StringValue(apiData.AName)
 	}
 	if apiData.Forwarder != "" {
-		record.Forwarder = types.StringValue(apiData.Forwarder)
+		tfData.Forwarder = types.StringValue(apiData.Forwarder)
 	}
 	if apiData.ForwarderPriority != 0 {
-		record.ForwarderPriority = types.Int64Value(int64(apiData.ForwarderPriority))
+		tfData.ForwarderPriority = types.Int64Value(int64(apiData.ForwarderPriority))
 	}
-	if apiData.DnssecValidation != false {
-		record.DnssecValidation = types.BoolValue(apiData.DnssecValidation)
+	if apiData.DnssecValidation {
+		tfData.DnssecValidation = types.BoolValue(apiData.DnssecValidation)
 	}
 	if apiData.ProxyType != "" {
-		record.ProxyType = types.StringValue(apiData.ProxyType)
+		tfData.ProxyType = types.StringValue(apiData.ProxyType)
 	}
 	if apiData.ProxyAddress != "" {
-		record.ProxyAddress = types.StringValue(apiData.ProxyAddress)
+		tfData.ProxyAddress = types.StringValue(apiData.ProxyAddress)
 	}
 	if apiData.ProxyPort != 0 {
-		record.ProxyPort = types.Int64Value(int64(apiData.ProxyPort))
+		tfData.ProxyPort = types.Int64Value(int64(apiData.ProxyPort))
 	}
 	if apiData.ProxyUsername != "" {
-		record.ProxyUsername = types.StringValue(apiData.ProxyUsername)
+		tfData.ProxyUsername = types.StringValue(apiData.ProxyUsername)
 	}
 	if apiData.ProxyPassword != "" {
-		record.ProxyPassword = types.StringValue(apiData.ProxyPassword)
+		tfData.ProxyPassword = types.StringValue(apiData.ProxyPassword)
 	}
 	if apiData.AppName != "" {
-		record.AppName = types.StringValue(apiData.AppName)
+		tfData.AppName = types.StringValue(apiData.AppName)
 	}
 	if apiData.ClassPath != "" {
-		record.ClassPath = types.StringValue(apiData.ClassPath)
+		tfData.ClassPath = types.StringValue(apiData.ClassPath)
 	}
 	if apiData.RecordData != "" {
-		record.RecordData = types.StringValue(apiData.RecordData)
+		tfData.RecordData = types.StringValue(apiData.RecordData)
 	}
-	return record
 }

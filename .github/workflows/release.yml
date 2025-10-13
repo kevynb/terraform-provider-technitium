@@ -7,12 +7,12 @@ on:
 # # alt for manually triggered release: changelog etc
 # # https://github.com/hashicorp/terraform-provider-random/blob/main/.github/workflows/release.yml
 # # https://github.com/hashicorp/terraform-provider-tls/blob/main/.github/workflows/release.yml
-#   workflow_dispatch:
-#     inputs:
-#       versionNumber:
-#         description: 'Release version number (v#.#.#)'
-#         type: string
-#         required: true
+  workflow_dispatch:
+    inputs:
+      versionNumber:
+        description: 'Release version number (v#.#.#)'
+        type: string
+        required: true
 
 # GitHub considers creating releases and uploading assets as writing contents.
 permissions:

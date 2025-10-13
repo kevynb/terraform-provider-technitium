@@ -5,7 +5,6 @@ package model
 import "context"
 
 type DNSDomain string
-type DNSZone string
 
 type DNSRecordType string
 type DNSRecordName string
@@ -40,6 +39,31 @@ const (
 	REC_FWD   = DNSRecordType("FWD")
 	REC_APP   = DNSRecordType("APP")
 )
+
+type DNSZoneType string
+
+const (
+	ZONE_PRIMARY            = DNSZoneType("Primary")
+	ZONE_SECONDARY          = DNSZoneType("Secondary")
+	ZONE_STUB               = DNSZoneType("Stub")
+	ZONE_FORWARDER          = DNSZoneType("Forwarder")
+	ZONE_SECONDARYFORWARDER = DNSZoneType("SecondaryForwarder")
+	ZONE_CATALOG            = DNSZoneType("Catalog")
+	ZONE_SECONDARYCATALOG   = DNSZoneType("SecondaryCatalog")
+)
+
+type DNSZone struct {
+	Name         string      `json:"name"`
+	Type         DNSZoneType `json:"type"`
+	Internal     bool        `json:"internal"`
+	DNSSecStatus string      `json:"dnssecStatus"`
+	SOASerial    uint32      `json:"soaSerial"`
+	Expiry       string      `json:"expiry"`
+	IsExpired    bool        `json:"isExpired"`
+	SyncFailed   bool        `json:"syncFailed"`
+	LastModified string      `json:"lastModified"`
+	Disabled     bool        `json:"disabled"`
+}
 
 type DNSRecord struct {
 	Type   DNSRecordType // from the enum above
@@ -148,8 +172,15 @@ func (r DNSRecord) SameKey(r1 DNSRecord) bool {
 
 	switch r.Type {
 	case REC_A, REC_AAAA:
-		println("RIp", r.IPAddress, "R1Ip", r1.IPAddress)
-		return r.IPAddress == r1.IPAddress
+		ip1 := r.IPAddress
+		if ip1 == "" {
+			ip1 = r.Value
+		}
+		ip2 := r1.IPAddress
+		if ip2 == "" {
+			ip2 = r1.Value
+		}
+		return ip1 == ip2 && ip1 != ""
 	case REC_CNAME, REC_ANAME, REC_DNAME:
 		return true
 	case REC_SRV:
@@ -191,4 +222,7 @@ type DNSApiClient interface {
 	AddRecord(ctx context.Context, record DNSRecord) error
 	UpdateRecord(ctx context.Context, oldRecord DNSRecord, newRecord DNSRecord) error
 	DeleteRecord(ctx context.Context, record DNSRecord) error
+	ListZones(ctx context.Context) ([]DNSZone, error)
+	CreateZone(ctx context.Context, zone DNSZone) error
+	DeleteZone(ctx context.Context, zoneName string) error
 }
