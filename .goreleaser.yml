@@ -42,7 +42,6 @@ release:
 changelog:
   disable: true
 terraform:
-  cloud:
-    username: dscain
-    namespace: dscain
+  username: dscain
+  namespace: dscain
 version: 2
