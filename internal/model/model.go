@@ -43,26 +43,26 @@ const (
 type DNSZoneType string
 
 const (
-	ZONE_PRIMARY          = DNSZoneType("Primary")
-	ZONE_SECONDARY        = DNSZoneType("Secondary")
-	ZONE_STUB             = DNSZoneType("Stub")
-	ZONE_FORWARDER        = DNSZoneType("Forwarder")
+	ZONE_PRIMARY            = DNSZoneType("Primary")
+	ZONE_SECONDARY          = DNSZoneType("Secondary")
+	ZONE_STUB               = DNSZoneType("Stub")
+	ZONE_FORWARDER          = DNSZoneType("Forwarder")
 	ZONE_SECONDARYFORWARDER = DNSZoneType("SecondaryForwarder")
-	ZONE_CATALOG          = DNSZoneType("Catalog")
-	ZONE_SECONDARYCATALOG = DNSZoneType("SecondaryCatalog")
+	ZONE_CATALOG            = DNSZoneType("Catalog")
+	ZONE_SECONDARYCATALOG   = DNSZoneType("SecondaryCatalog")
 )
 
 type DNSZone struct {
-	Name            string      `json:"name"`
-	Type            DNSZoneType `json:"type"`
-	Internal        bool        `json:"internal"`
-	DNSSecStatus    string      `json:"dnssecStatus"`
-	SOASerial       uint32      `json:"soaSerial"`
-	Expiry          string      `json:"expiry"`
-	IsExpired       bool        `json:"isExpired"`
-	SyncFailed      bool        `json:"syncFailed"`
-	LastModified    string      `json:"lastModified"`
-	Disabled        bool        `json:"disabled"`
+	Name         string      `json:"name"`
+	Type         DNSZoneType `json:"type"`
+	Internal     bool        `json:"internal"`
+	DNSSecStatus string      `json:"dnssecStatus"`
+	SOASerial    uint32      `json:"soaSerial"`
+	Expiry       string      `json:"expiry"`
+	IsExpired    bool        `json:"isExpired"`
+	SyncFailed   bool        `json:"syncFailed"`
+	LastModified string      `json:"lastModified"`
+	Disabled     bool        `json:"disabled"`
 }
 
 type DNSRecord struct {

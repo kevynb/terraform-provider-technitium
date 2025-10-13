@@ -13,38 +13,38 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
+	"github.com/dscain/terraform-provider-technitium/internal/model"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/dscain/terraform-provider-technitium/internal/model"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
-	_ resource.Resource                = &ZoneResource{}
-	_ resource.ResourceWithConfigure   = &ZoneResource{}
-	_ resource.ResourceWithImportState = &ZoneResource{}
-	_ datasource.DataSource            = &ZoneDataSource{}
+	_ resource.Resource                  = &ZoneResource{}
+	_ resource.ResourceWithConfigure     = &ZoneResource{}
+	_ resource.ResourceWithImportState   = &ZoneResource{}
+	_ datasource.DataSource              = &ZoneDataSource{}
 	_ datasource.DataSourceWithConfigure = &ZoneDataSource{}
 )
 
 type tfDNSZone struct {
-	Name            types.String `tfsdk:"name"`
-	Type            types.String `tfsdk:"type"`
-	Catalog         types.String `tfsdk:"catalog"`
-	UseSoaSerialDateScheme types.Bool `tfsdk:"use_soa_serial_date_scheme"`
+	Name                       types.String `tfsdk:"name"`
+	Type                       types.String `tfsdk:"type"`
+	Catalog                    types.String `tfsdk:"catalog"`
+	UseSoaSerialDateScheme     types.Bool   `tfsdk:"use_soa_serial_date_scheme"`
 	PrimaryNameServerAddresses types.String `tfsdk:"primary_name_server_addresses"`
-	ZoneTransferProtocol types.String `tfsdk:"zone_transfer_protocol"`
-	TsigKeyName     types.String `tfsdk:"tsig_key_name"`
-	ValidateZone    types.Bool   `tfsdk:"validate_zone"`
-	InitializeForwarder types.Bool `tfsdk:"initialize_forwarder"`
-	Protocol        types.String `tfsdk:"protocol"`
-	Forwarder       types.String `tfsdk:"forwarder"`
-	DnssecValidation types.Bool  `tfsdk:"dnssec_validation"`
-	ProxyType       types.String `tfsdk:"proxy_type"`
-	ProxyAddress    types.String `tfsdk:"proxy_address"`
-	ProxyPort       types.Int64  `tfsdk:"proxy_port"`
-	ProxyUsername   types.String `tfsdk:"proxy_username"`
-	ProxyPassword   types.String `tfsdk:"proxy_password"`
+	ZoneTransferProtocol       types.String `tfsdk:"zone_transfer_protocol"`
+	TsigKeyName                types.String `tfsdk:"tsig_key_name"`
+	ValidateZone               types.Bool   `tfsdk:"validate_zone"`
+	InitializeForwarder        types.Bool   `tfsdk:"initialize_forwarder"`
+	Protocol                   types.String `tfsdk:"protocol"`
+	Forwarder                  types.String `tfsdk:"forwarder"`
+	DnssecValidation           types.Bool   `tfsdk:"dnssec_validation"`
+	ProxyType                  types.String `tfsdk:"proxy_type"`
+	ProxyAddress               types.String `tfsdk:"proxy_address"`
+	ProxyPort                  types.Int64  `tfsdk:"proxy_port"`
+	ProxyUsername              types.String `tfsdk:"proxy_username"`
+	ProxyPassword              types.String `tfsdk:"proxy_password"`
 }
 
 // ZoneResource defines the implementation of Technitium DNS zones

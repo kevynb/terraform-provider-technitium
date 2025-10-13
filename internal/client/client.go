@@ -143,19 +143,21 @@ type apiDNSRecordResponseItemRdata struct {
 	RecordData                     string `json:"data,omitempty"`
 }
 
-type apiErrorResponse struct {
-	Error   string `json:"code"`    // like "INVALID_VALUE_ENUM"
-	Message string `json:"message"` // like "type not any of: A, ..."
-}
+// apiErrorResponse is kept for potential future use
+// type apiErrorResponse struct {
+// 	Error   string `json:"code"`    // like "INVALID_VALUE_ENUM"
+// 	Message string `json:"message"` // like "type not any of: A, ..."
+// }
 
 func (c Client) makeRecordsRequest(ctx context.Context, path string, method string, queryParams url.Values, formData url.Values, apiResponse *apiResponse) error {
 	// Ensure the token is always set
-	if method == http.MethodGet {
+	switch method {
+	case http.MethodGet:
 		if queryParams == nil {
 			queryParams = url.Values{}
 		}
 		queryParams.Set("token", c.token)
-	} else if method == http.MethodPost {
+	case http.MethodPost:
 		if formData == nil {
 			formData = url.Values{}
 		}
@@ -185,7 +187,9 @@ func (c Client) makeRecordsRequest(ctx context.Context, path string, method stri
 	if err != nil {
 		return errors.Wrap(err, "HTTP request error")
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Parse response to check for API errors
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
@@ -205,12 +209,13 @@ func (c Client) makeRecordsRequest(ctx context.Context, path string, method stri
 
 func (c Client) makeZonesRequest(ctx context.Context, path string, method string, queryParams url.Values, formData url.Values, apiResponse interface{}) error {
 	// Ensure the token is always set
-	if method == http.MethodGet {
+	switch method {
+	case http.MethodGet:
 		if queryParams == nil {
 			queryParams = url.Values{}
 		}
 		queryParams.Set("token", c.token)
-	} else if method == http.MethodPost {
+	case http.MethodPost:
 		if formData == nil {
 			formData = url.Values{}
 		}
@@ -239,7 +244,9 @@ func (c Client) makeZonesRequest(ctx context.Context, path string, method string
 	if err != nil {
 		return errors.Wrap(err, "HTTP request error")
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Parse response to check for API errors
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
@@ -1045,6 +1052,7 @@ func (c Client) CreateZone(ctx context.Context, zone model.DNSZone) error {
 	// Add optional parameters based on zone type
 	if zone.Type == model.ZONE_SECONDARY || zone.Type == model.ZONE_STUB {
 		// Add primary name server addresses if needed
+		_ = zone // prevent unused variable warning
 	}
 
 	return c.makeZonesRequest(ctx, "/create", http.MethodPost, nil, formData, nil)

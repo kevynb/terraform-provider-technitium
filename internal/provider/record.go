@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/dscain/terraform-provider-technitium/internal/model"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -17,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/dscain/terraform-provider-technitium/internal/model"
 )
 
 // import separator
@@ -813,13 +813,13 @@ func model2tf(apiData model.DNSRecord, tfData *tfDNSRecord) {
 	if apiData.Value != "" {
 		tfData.Value = types.StringValue(apiData.Value)
 	}
-	if apiData.Ptr != false {
+	if apiData.Ptr {
 		tfData.Ptr = types.BoolValue(apiData.Ptr)
 	}
-	if apiData.CreatePtrZone != false {
+	if apiData.CreatePtrZone {
 		tfData.CreatePtrZone = types.BoolValue(apiData.CreatePtrZone)
 	}
-	if apiData.UpdateSvcbHints != false {
+	if apiData.UpdateSvcbHints {
 		tfData.UpdateSvcbHints = types.BoolValue(apiData.UpdateSvcbHints)
 	}
 	if apiData.NameServer != "" {
@@ -843,7 +843,7 @@ func model2tf(apiData model.DNSRecord, tfData *tfDNSRecord) {
 	if apiData.Text != "" {
 		tfData.Text = types.StringValue(apiData.Text)
 	}
-	if apiData.SplitText != false {
+	if apiData.SplitText {
 		tfData.SplitText = types.BoolValue(apiData.SplitText)
 	}
 	if apiData.Mailbox != "" {
@@ -927,10 +927,10 @@ func model2tf(apiData model.DNSRecord, tfData *tfDNSRecord) {
 	if apiData.SvcParams != "" {
 		tfData.SvcParams = types.StringValue(apiData.SvcParams)
 	}
-	if apiData.AutoIpv4Hint != false {
+	if apiData.AutoIpv4Hint {
 		tfData.AutoIpv4Hint = types.BoolValue(apiData.AutoIpv4Hint)
 	}
-	if apiData.AutoIpv6Hint != false {
+	if apiData.AutoIpv6Hint {
 		tfData.AutoIpv6Hint = types.BoolValue(apiData.AutoIpv6Hint)
 	}
 	if apiData.UriPriority != 0 {
@@ -960,7 +960,7 @@ func model2tf(apiData model.DNSRecord, tfData *tfDNSRecord) {
 	if apiData.ForwarderPriority != 0 {
 		tfData.ForwarderPriority = types.Int64Value(int64(apiData.ForwarderPriority))
 	}
-	if apiData.DnssecValidation != false {
+	if apiData.DnssecValidation {
 		tfData.DnssecValidation = types.BoolValue(apiData.DnssecValidation)
 	}
 	if apiData.ProxyType != "" {
