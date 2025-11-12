@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/dscain/terraform-provider-technitium/internal/model"
+	"github.com/kevynb/terraform-provider-technitium/internal/model"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"

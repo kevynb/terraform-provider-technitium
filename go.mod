@@ -1,4 +1,4 @@
-module github.com/dscain/terraform-provider-technitium
+module github.com/kevynb/terraform-provider-technitium
 
 go 1.22.0
 

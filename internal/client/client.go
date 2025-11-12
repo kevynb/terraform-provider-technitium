@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dscain/terraform-provider-technitium/internal/model"
+	"github.com/kevynb/terraform-provider-technitium/internal/model"
 	"github.com/pkg/errors"
 )
 

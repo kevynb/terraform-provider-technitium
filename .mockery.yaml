@@ -1,6 +1,6 @@
 with-expecter: true
 packages:
-  github.com/dscain/terraform-provider-technitium/internal/model:
+  github.com/kevynb/terraform-provider-technitium/internal/model:
     # place your package-specific config here
     config:
       filename: "mock_{{.InterfaceName}}.go"

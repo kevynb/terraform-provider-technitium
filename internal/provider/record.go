@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/dscain/terraform-provider-technitium/internal/model"
+	"github.com/kevynb/terraform-provider-technitium/internal/model"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
