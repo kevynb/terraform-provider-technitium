@@ -123,6 +123,8 @@ Additional optional fields may be supported based on record type. Their name sho
 
 Import existing DNS records using the format `zone:name:TYPE:value`.
 
+**Note:** APP records cannot be imported due to their complex structure requiring multiple fields (`app_name`, `class_path`, and `record_data`). APP records must be created directly in your Terraform configuration.
+
 ### Examples
 
 ```bash
