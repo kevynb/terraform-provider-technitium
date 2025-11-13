@@ -125,7 +125,19 @@ Import existing DNS records using the format `zone:name:TYPE:value`.
 
 **Note:** APP records cannot be imported due to their complex structure requiring multiple fields (`app_name`, `class_path`, and `record_data`). APP records must be created directly in your Terraform configuration.
 
+### Import ID Format
+
+The import ID format is `zone:name:TYPE:value` where:
+- `zone` is the DNS zone name (e.g., `example.com`)
+- `name` is the record name within the zone (use `@` for the zone apex)
+- `TYPE` is the DNS record type (e.g., `CNAME`, `A`, `MX`)
+- `value` is the record value, which varies by record type (see examples below)
+
+**Important:** All separators in the import ID use colons (`:`). For multi-part record values (MX, SRV, CAA), the parts are also separated by colons.
+
 ### Examples
+
+#### Simple Records
 
 ```bash
 # Import a CNAME record
@@ -134,12 +146,52 @@ terraform import technitium_record.example example.com:www:CNAME:target.example.
 # Import an A record
 terraform import technitium_record.example example.com:@:A:192.168.1.100
 
-# Import an MX record
-terraform import technitium_record.example example.com:@:MX:10 mail.example.com
+# Import an AAAA record
+terraform import technitium_record.example example.com:www:AAAA:2001:db8::1
+
+# Import a TXT record
+terraform import technitium_record.example example.com:@:TXT:v=spf1 include:_spf.example.com ~all
+
+# Import a NS record
+terraform import technitium_record.example example.com:@:NS:ns1.example.com
+
+# Import a PTR record
+terraform import technitium_record.example 1.168.192.in-addr.arpa:100:PTR:host.example.com
 ```
 
-The import ID format is `zone:name:TYPE:value` where:
-- `zone` is the DNS zone name (e.g., `example.com`)
-- `name` is the record name within the zone (use `@` for the zone apex)
-- `TYPE` is the DNS record type (e.g., `CNAME`, `A`, `MX`)
-- `value` is the record value (e.g., target for CNAME, IP for A, "preference exchange" for MX)
+#### Multi-Part Records
+
+For records with multiple values, separate each part with a colon (`:`):
+
+```bash
+# Import an MX record (format: preference:exchange)
+terraform import technitium_record.example example.com:@:MX:10:mail.example.com
+
+# Import an SRV record (format: priority:weight:port:target)
+terraform import technitium_record.example example.com:_sip._tcp:SRV:10:5:5060:sipserver.example.com
+
+# Import a CAA record (format: flags:tag:value)
+terraform import technitium_record.example example.com:@:CAA:0:issue:letsencrypt.org
+```
+
+#### Records with Colons in Values
+
+The import format correctly handles values that contain colons (such as URIs or IPv6 addresses):
+
+```bash
+# Import a URI record with colons in the URI
+terraform import technitium_record.example example.com:_http._tcp:URI:10:1:https://example.com:8080/path
+
+# Import a TXT record with colons in the value
+terraform import technitium_record.example example.com:@:TXT:v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA...
+```
+
+### Error Handling
+
+If the import ID format is incorrect, you will receive a clear error message:
+
+- **Invalid format**: `Import ID must be in format 'zone:name:TYPE:value'`
+- **Invalid MX format**: `MX record value must be in format 'preference:exchange'`
+- **Invalid SRV format**: `SRV record value must be in format 'priority:weight:port:target'`
+- **Invalid CAA format**: `CAA record value must be in format 'flags:tag:value'`
+- **Invalid numeric values**: Error messages will indicate which field (preference, priority, weight, port) has an invalid value
