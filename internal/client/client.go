@@ -143,12 +143,6 @@ type apiDNSRecordResponseItemRdata struct {
 	RecordData                     string `json:"data,omitempty"`
 }
 
-// apiErrorResponse is kept for potential future use
-// type apiErrorResponse struct {
-// 	Error   string `json:"code"`    // like "INVALID_VALUE_ENUM"
-// 	Message string `json:"message"` // like "type not any of: A, ..."
-// }
-
 func (c Client) makeRecordsRequest(ctx context.Context, path string, method string, queryParams url.Values, formData url.Values, apiResponse *apiResponse) error {
 	// Ensure the token is always set
 	switch method {
