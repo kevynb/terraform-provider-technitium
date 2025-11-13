@@ -1038,15 +1038,13 @@ func (c Client) ListZones(ctx context.Context) ([]model.DNSZone, error) {
 
 // CreateZone creates a new DNS zone.
 func (c Client) CreateZone(ctx context.Context, zone model.DNSZone) error {
+	if zone.Type == model.ZONE_SECONDARY || zone.Type == model.ZONE_STUB {
+		return errors.New("creating SECONDARY and STUB zones is not yet implemented - missing primary name server configuration")
+	}
+
 	formData := url.Values{
 		"zone": {zone.Name},
 		"type": {string(zone.Type)},
-	}
-
-	// Add optional parameters based on zone type
-	if zone.Type == model.ZONE_SECONDARY || zone.Type == model.ZONE_STUB {
-		// Add primary name server addresses if needed
-		_ = zone // prevent unused variable warning
 	}
 
 	return c.makeZonesRequest(ctx, "/create", http.MethodPost, nil, formData, nil)
