@@ -18,3 +18,7 @@ dist/
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
 !command/test-fixtures/**/.terraform/
+**/*.zip*
+**/*.tar.gz*
+*.out
+.terraform.lock.hcl
