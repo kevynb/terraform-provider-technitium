@@ -19,7 +19,7 @@ Add the provider to your Terraform configuration:
 terraform {
   required_providers {
     technitium = {
-      source = "registry.terraform.io/dscain/technitium"
+      source = "registry.terraform.io/kevynb/technitium"
     }
   }
 }
