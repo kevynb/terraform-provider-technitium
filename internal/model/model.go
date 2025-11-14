@@ -148,8 +148,15 @@ func (r DNSRecord) SameKey(r1 DNSRecord) bool {
 
 	switch r.Type {
 	case REC_A, REC_AAAA:
-		println("RIp", r.IPAddress, "R1Ip", r1.IPAddress)
-		return r.IPAddress == r1.IPAddress
+		ip1 := r.IPAddress
+		if ip1 == "" {
+			ip1 = r.Value
+		}
+		ip2 := r1.IPAddress
+		if ip2 == "" {
+			ip2 = r1.Value
+		}
+		return ip1 == ip2 && ip1 != ""
 	case REC_CNAME, REC_ANAME, REC_DNAME:
 		return true
 	case REC_SRV:

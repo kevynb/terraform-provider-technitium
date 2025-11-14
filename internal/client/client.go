@@ -218,7 +218,7 @@ func (c Client) GetRecords(ctx context.Context, domain model.DNSRecordName) ([]m
 
 	res := make([]model.DNSRecord, len(apiResponse.Response.Records))
 	for i, rr := range apiResponse.Response.Records {
-		res[i] = mapAPIDNSRecordToDNSRecord(rr)
+		res[i] = mapAPIDNSRecordToDNSRecord(rr, apiResponse.Response.Zone.Name)
 	}
 
 	return res, nil
@@ -957,10 +957,23 @@ func (c Client) DeleteRecord(ctx context.Context, record model.DNSRecord) error 
 	return c.makeRecordsRequest(ctx, "/delete", http.MethodGet, params, nil, nil)
 }
 
-func mapAPIDNSRecordToDNSRecord(apiRecord apiDNSRecordResponseItem) model.DNSRecord {
+func constructFullDomain(name, zone string) string {
+	if name == "@" || name == "" {
+		return zone
+	}
+	if strings.HasSuffix(name, "."+zone) {
+		return name
+	}
+	if name == zone {
+		return name
+	}
+	return name + "." + zone
+}
+
+func mapAPIDNSRecordToDNSRecord(apiRecord apiDNSRecordResponseItem, zone string) model.DNSRecord {
 	return model.DNSRecord{
 		Type:   model.DNSRecordType(apiRecord.Type),
-		Domain: model.DNSRecordName(apiRecord.Domain),
+		Domain: model.DNSRecordName(constructFullDomain(apiRecord.Domain, zone)),
 
 		TTL: model.DNSRecordTTL(apiRecord.TTL),
 
