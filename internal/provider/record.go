@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kevynb/terraform-provider-technitium/internal/model"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -18,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/kevynb/terraform-provider-technitium/internal/model"
 )
 
 // import separator

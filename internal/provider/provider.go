@@ -5,13 +5,13 @@ import (
 	"os"
 	"sync"
 
-	"github.com/kevynb/terraform-provider-technitium/internal/model"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/kevynb/terraform-provider-technitium/internal/model"
 )
 
 // https://pkg.go.dev/github.com/hashicorp/terraform-plugin-framework/provider

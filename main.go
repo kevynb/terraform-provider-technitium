@@ -7,10 +7,10 @@ import (
 	"flag"
 	"log"
 
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/kevynb/terraform-provider-technitium/internal/client"
 	"github.com/kevynb/terraform-provider-technitium/internal/model"
 	"github.com/kevynb/terraform-provider-technitium/internal/provider"
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 
 var (
