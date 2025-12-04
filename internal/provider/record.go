@@ -559,8 +559,8 @@ func (r *RecordResource) ImportState(ctx context.Context, req resource.ImportSta
 	id := req.ID
 
 	// Parse the import ID: zone:name:TYPE:value
-	parts := strings.Split(id, IMPORT_SEP)
-	if len(parts) != 4 {
+	parts := strings.SplitN(id, IMPORT_SEP, 4)
+	if len(parts) < 4 {
 		resp.Diagnostics.AddError(
 			"Invalid import ID",
 			fmt.Sprintf("Import ID must be in format 'zone:name:TYPE:value', got: %s", id),
@@ -592,43 +592,82 @@ func (r *RecordResource) ImportState(ctx context.Context, req resource.ImportSta
 	case "CNAME":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("cname"), value)...)
 	case "MX":
-		// MX format: preference exchange
-		mxParts := strings.SplitN(value, " ", 2)
-		if len(mxParts) == 2 {
-			if pref, err := strconv.ParseInt(mxParts[0], 10, 64); err == nil {
-				resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("preference"), pref)...)
-			}
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("exchange"), mxParts[1])...)
+		// MX format: preference:exchange
+		mxParts := strings.SplitN(value, IMPORT_SEP, 2)
+		if len(mxParts) < 2 {
+			resp.Diagnostics.AddError(
+				"Invalid MX record format",
+				fmt.Sprintf("MX record value must be in format 'preference:exchange', got: %s", value),
+			)
+			return
 		}
+		if pref, err := strconv.ParseInt(mxParts[0], 10, 64); err == nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("preference"), pref)...)
+		} else {
+			resp.Diagnostics.AddError(
+				"Invalid MX preference",
+				fmt.Sprintf("MX preference must be a valid integer, got: %s", mxParts[0]),
+			)
+			return
+		}
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("exchange"), mxParts[1])...)
 	case "NS":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name_server"), value)...)
 	case "PTR":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("ptr_name"), value)...)
 	case "SRV":
-		// SRV format: priority weight port target
-		srvParts := strings.Split(value, " ")
-		if len(srvParts) >= 4 {
-			if prio, err := strconv.ParseInt(srvParts[0], 10, 64); err == nil {
-				resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("priority"), prio)...)
-			}
-			if weight, err := strconv.ParseInt(srvParts[1], 10, 64); err == nil {
-				resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("weight"), weight)...)
-			}
-			if port, err := strconv.ParseInt(srvParts[2], 10, 64); err == nil {
-				resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("port"), port)...)
-			}
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("target"), srvParts[3])...)
+		// SRV format: priority:weight:port:target
+		srvParts := strings.SplitN(value, IMPORT_SEP, 4)
+		if len(srvParts) < 4 {
+			resp.Diagnostics.AddError(
+				"Invalid SRV record format",
+				fmt.Sprintf("SRV record value must be in format 'priority:weight:port:target', got: %s", value),
+			)
+			return
 		}
+		if prio, err := strconv.ParseInt(srvParts[0], 10, 64); err == nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("priority"), prio)...)
+		} else {
+			resp.Diagnostics.AddError(
+				"Invalid SRV priority",
+				fmt.Sprintf("SRV priority must be a valid integer, got: %s", srvParts[0]),
+			)
+			return
+		}
+		if weight, err := strconv.ParseInt(srvParts[1], 10, 64); err == nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("weight"), weight)...)
+		} else {
+			resp.Diagnostics.AddError(
+				"Invalid SRV weight",
+				fmt.Sprintf("SRV weight must be a valid integer, got: %s", srvParts[1]),
+			)
+			return
+		}
+		if port, err := strconv.ParseInt(srvParts[2], 10, 64); err == nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("port"), port)...)
+		} else {
+			resp.Diagnostics.AddError(
+				"Invalid SRV port",
+				fmt.Sprintf("SRV port must be a valid integer, got: %s", srvParts[2]),
+			)
+			return
+		}
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("target"), srvParts[3])...)
 	case "TXT":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("text"), value)...)
 	case "CAA":
-		// CAA format: flags tag value
-		caaParts := strings.SplitN(value, " ", 3)
-		if len(caaParts) >= 3 {
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("flags"), caaParts[0])...)
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("tag"), caaParts[1])...)
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("value"), caaParts[2])...)
+		// CAA format: flags:tag:value
+		caaParts := strings.SplitN(value, IMPORT_SEP, 3)
+		if len(caaParts) < 3 {
+			resp.Diagnostics.AddError(
+				"Invalid CAA record format",
+				fmt.Sprintf("CAA record value must be in format 'flags:tag:value', got: %s", value),
+			)
+			return
 		}
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("flags"), caaParts[0])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("tag"), caaParts[1])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("value"), caaParts[2])...)
 	default:
 		// For other record types, try to set a generic value field if it exists
 		switch recordType {

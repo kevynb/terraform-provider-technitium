@@ -17,69 +17,154 @@ Manages a DNS record in Technitium DNS Server.
 
 ### Required
 
-- `domain` (String) The domain name for the DNS record (FQN)
-- `ttl` (Number) The time-to-live (TTL) of the DNS record, in seconds.
-- `type` (String) The DNS record type (e.g., A, AAAA, CNAME, etc.).
+- **`type`** (String): DNS record type. Supported values:
+    - `A`, `AAAA`: Address records for IPv4 and IPv6.
+    - `CNAME`: Canonical name records.
+    - `MX`: Mail exchange records.
+    - `NS`: Name server records.
+    - `TXT`: Text records.
+    - `SRV`: Service locator records.
+    - `PTR`: Pointer records for reverse DNS.
+    - `NAPTR`: Naming authority pointer records.
+    - `CAA`: Certification Authority Authorization records.
+    - `ANAME`: Alias records.
+    - `URI`: URI records.
+    - `TLSA`: TLS authentication records.
+    - `SOA`, `DNAME`, `DS`, `SSHFP`, `SVCB`, `HTTPS`, `FWD`, `APP`: Advanced and custom records.
 
-### Optional
+- **`domain`** (String): Fully qualified domain name (FQDN) for the record (e.g., `sub.example.com`).
 
-- `algorithm` (String) The algorithm for DS records.
-- `aname` (String) The ANAME value.
-- `app_name` (String) The app name for APP records.
-- `auto_ipv4_hint` (Boolean) Whether to use automatic IPv4 hints for SVCB/HTTPS records.
-- `auto_ipv6_hint` (Boolean) Whether to use automatic IPv6 hints for SVCB/HTTPS records.
-- `class_path` (String) The class path for APP records.
-- `cname` (String) The canonical name for CNAME records.
-- `create_ptr_zone` (Boolean) Specifies if the PTR zone should be automatically created for A/AAAA records.
-- `digest` (String) The digest for DS records.
-- `digest_type` (String) The digest type for DS records.
-- `dname` (String) The DNAME for DNAME records.
-- `dnssec_validation` (Boolean) Whether DNSSEC validation is enabled for FWD records.
-- `exchange` (String) The exchange server for MX records.
-- `flags` (String) The flags for CAA records.
-- `forwarder` (String) The forwarder address for FWD records.
-- `forwarder_priority` (Number) The priority for FWD records.
-- `glue` (String) The glue record for NS records.
-- `ip_address` (String) The IP address for A or AAAA records.
-- `key_tag` (Number) The key tag for DS records.
-- `mailbox` (String) The mailbox for RP records.
-- `name_server` (String) The name server for NS records.
-- `naptr_flags` (String) The flags for NAPTR records.
-- `naptr_order` (Number) The order for NAPTR records.
-- `naptr_preference` (Number) The preference for NAPTR records.
-- `naptr_regexp` (String) The regular expression for NAPTR records.
-- `naptr_replacement` (String) The replacement field for NAPTR records.
-- `naptr_services` (String) The services for NAPTR records.
-- `port` (Number) The port for SRV records.
-- `preference` (Number) The priority for MX records.
-- `priority` (Number) The priority for SRV records.
-- `proxy_address` (String) The proxy address for FWD records.
-- `proxy_password` (String, Sensitive) The proxy password for FWD records.
-- `proxy_port` (Number) The proxy port for FWD records.
-- `proxy_type` (String) The proxy type for FWD records.
-- `proxy_username` (String) The proxy username for FWD records.
-- `ptr` (Boolean) Specifies if this record should create a PTR record for A/AAAA types.
-- `ptr_name` (String) The PTR name for PTR records.
-- `record_data` (String) The record data for APP records.
-- `split_text` (Boolean) Whether to split TXT record text into multiple character strings.
-- `sshfp_algorithm` (String) The SSHFP algorithm.
-- `sshfp_fingerprint` (String) The SSHFP fingerprint.
-- `sshfp_fingerprint_type` (String) The SSHFP fingerprint type.
-- `svc_params` (String) The parameters for SVCB/HTTPS records.
-- `svc_priority` (Number) The priority for SVCB/HTTPS records.
-- `svc_target_name` (String) The target name for SVCB/HTTPS records.
-- `tag` (String) The tag for CAA records.
-- `target` (String) The target for SRV records.
-- `text` (String) The text value for TXT records.
-- `tlsa_certificate_association_data` (String) The TLSA certificate association data.
-- `tlsa_certificate_usage` (String) The TLSA certificate usage.
-- `tlsa_matching_type` (String) The TLSA matching type.
-- `tlsa_selector` (String) The TLSA selector.
-- `txt_domain` (String) The TXT domain for RP records.
-- `update_svcb_hints` (Boolean) Whether to update SVCB hints for this record.
-- `uri` (String) The URI for URI records.
-- `uri_priority` (Number) The priority for URI records.
-- `uri_weight` (Number) The weight for URI records.
-- `value` (String) The value for CAA records.
-- `weight` (Number) The weight for SRV records.
-- `zone` (String) The DNS zone name. If not specified, it will be inferred from the domain.
+- **`ttl`** (Number): Record time-to-live in seconds. Must be between 600 and 604800 (1 week). Defaults to `3600`.
+
+### Optional, based on record type.
+
+- **`preference`** (Number): Priority for `MX` records. Lower values indicate higher priority.
+- **`priority`** (Number): Priority for `SRV` records. Lower values indicate higher priority.
+- **`weight`** (Number): Weight for `SRV` records to influence load balancing.
+- **`port`** (Number): Port number for `SRV` records.
+- **`target`** (String): Target for `CNAME`, `SRV`, or similar records.
+- **`text`** (String): Text content for `TXT` records.
+- **`app_name`** (String): Application name for `APP` records.
+- **`class_path`** (String): Class path for `APP` records.
+- **`record_data`** (String): JSON-encoded data for `APP` records.
+- **`ptr`** (Boolean): Create a PTR record for `A` or `AAAA` records (default: `false`).
+- **`create_ptr_zone`** (Boolean): Automatically create a PTR zone for `A` or `AAAA` records (default: `false`).
+- **`update_svcb_hints`** (Boolean): Update SVCB hints for `A` or `AAAA` records (default: `false`).
+- **`exchange`** (String): Exchange server for `MX` records.
+- **`cname`** (String): Canonical name for `CNAME` records.
+- **`ip_address`** (String): IPv4 or IPv6 address for `A` or `AAAA` records.
+
+Additional optional fields may be supported based on record type. Their name should mirror what you see in the technitium UI for each field.
+
+### Examples for Specific Record Types
+
+1. **MX Record**:
+   ```terraform
+   resource "technitium_record" "mx_record" {
+     domain    = "mail.example.com"
+     type      = "MX"
+     ttl       = 3600
+     preference  = 10
+     exchange  = "mailserver.example.com"
+   }
+   ```
+
+2. **SRV Record**:
+   ```terraform
+   resource "technitium_record" "srv_record" {
+     domain    = "_sip._tcp.example.com"
+     type      = "SRV"
+     ttl       = 3600
+     priority  = 10
+     weight    = 5
+     port      = 5060
+     target    = "sipserver.example.com"
+   }
+   ```
+
+3. **TXT Record**:
+   ```terraform
+   resource "technitium_record" "txt_record" {
+     domain = "verification.example.com"
+     type   = "TXT"
+     ttl    = 3600
+     text   = "sample-verification-code"
+   }
+   ```
+
+## Import
+
+Import existing DNS records using the format `zone:name:TYPE:value`.
+
+**Note:** APP records cannot be imported due to their complex structure requiring multiple fields (`app_name`, `class_path`, and `record_data`). APP records must be created directly in your Terraform configuration.
+
+### Import ID Format
+
+The import ID format is `zone:name:TYPE:value` where:
+- `zone` is the DNS zone name (e.g., `example.com`)
+- `name` is the record name within the zone (use `@` for the zone apex)
+- `TYPE` is the DNS record type (e.g., `CNAME`, `A`, `MX`)
+- `value` is the record value, which varies by record type (see examples below)
+
+**Important:** All separators in the import ID use colons (`:`). For multi-part record values (MX, SRV, CAA), the parts are also separated by colons.
+
+### Examples
+
+#### Simple Records
+
+```bash
+# Import a CNAME record
+terraform import technitium_record.example example.com:www:CNAME:target.example.com
+
+# Import an A record
+terraform import technitium_record.example example.com:@:A:192.168.1.100
+
+# Import an AAAA record
+terraform import technitium_record.example example.com:www:AAAA:2001:db8::1
+
+# Import a TXT record
+terraform import technitium_record.example example.com:@:TXT:v=spf1 include:_spf.example.com ~all
+
+# Import a NS record
+terraform import technitium_record.example example.com:@:NS:ns1.example.com
+
+# Import a PTR record
+terraform import technitium_record.example 1.168.192.in-addr.arpa:100:PTR:host.example.com
+```
+
+#### Multi-Part Records
+
+For records with multiple values, separate each part with a colon (`:`):
+
+```bash
+# Import an MX record (format: preference:exchange)
+terraform import technitium_record.example example.com:@:MX:10:mail.example.com
+
+# Import an SRV record (format: priority:weight:port:target)
+terraform import technitium_record.example example.com:_sip._tcp:SRV:10:5:5060:sipserver.example.com
+
+# Import a CAA record (format: flags:tag:value)
+terraform import technitium_record.example example.com:@:CAA:0:issue:letsencrypt.org
+```
+
+#### Records with Colons in Values
+
+The import format correctly handles values that contain colons (such as URIs or IPv6 addresses):
+
+```bash
+# Import a URI record with colons in the URI
+terraform import technitium_record.example example.com:_http._tcp:URI:10:1:https://example.com:8080/path
+
+# Import a TXT record with colons in the value
+terraform import technitium_record.example example.com:@:TXT:v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA...
+```
+
+### Error Handling
+
+If the import ID format is incorrect, you will receive a clear error message:
+
+- **Invalid format**: `Import ID must be in format 'zone:name:TYPE:value'`
+- **Invalid MX format**: `MX record value must be in format 'preference:exchange'`
+- **Invalid SRV format**: `SRV record value must be in format 'priority:weight:port:target'`
+- **Invalid CAA format**: `CAA record value must be in format 'flags:tag:value'`
+- **Invalid numeric values**: Error messages will indicate which field (preference, priority, weight, port) has an invalid value
