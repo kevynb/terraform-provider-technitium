@@ -31,6 +31,7 @@ var (
 )
 
 type tfDNSRecord struct {
+	Zone                           types.String `tfsdk:"zone"`
 	Type                           types.String `tfsdk:"type"`
 	Domain                         types.String `tfsdk:"domain"`
 	TTL                            types.Int64  `tfsdk:"ttl"`
@@ -115,6 +116,10 @@ func (r *RecordResource) Schema(ctx context.Context, req resource.SchemaRequest,
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a DNS record in Technitium DNS Server.",
 		Attributes: map[string]schema.Attribute{
+			"zone": schema.StringAttribute{
+				MarkdownDescription: "The DNS zone name. If not specified, it will be inferred from the domain.",
+				Optional:            true,
+			},
 			"type": schema.StringAttribute{
 				MarkdownDescription: "The DNS record type (e.g., A, AAAA, CNAME, etc.).",
 				Required:            true,
@@ -468,7 +473,7 @@ func (r *RecordResource) Read(ctx context.Context, req resource.ReadRequest, res
 			tflog.Debug(ctx, fmt.Sprintf("Got DNS record: %v", dnsRecordFromApi))
 			if dnsRecordFromApi.SameKey(dnsRecordFromState) {
 				tflog.Info(ctx, "matching DNS record found")
-				stateData = model2tf(dnsRecordFromApi)
+				model2tf(dnsRecordFromApi, &stateData)
 				tflog.Info(ctx, " AutoIpv6Hint value "+stateData.AutoIpv6Hint.String())
 				numFound += 1
 			}
@@ -688,6 +693,7 @@ func (r *RecordResource) ImportState(ctx context.Context, req resource.ImportSta
 func setLogCtx(ctx context.Context, tfRec tfDNSRecord, op string) context.Context {
 	logAttributes := map[string]interface{}{
 		"operation":                         op,
+		"zone":                              tfRec.Zone.ValueString(),
 		"type":                              tfRec.Type.ValueString(),
 		"domain":                            tfRec.Domain.ValueString(),
 		"ttl":                               tfRec.TTL.ValueInt64(),
@@ -830,197 +836,194 @@ func tf2model(tfData tfDNSRecord) model.DNSRecord {
 }
 
 // convert from api data model into terraform data model
-func model2tf(apiData model.DNSRecord) (tfData tfDNSRecord) {
-	record := tfDNSRecord{}
-
+func model2tf(apiData model.DNSRecord, tfData *tfDNSRecord) {
 	if apiData.Type != "" {
-		record.Type = types.StringValue(string(apiData.Type))
+		tfData.Type = types.StringValue(string(apiData.Type))
 	}
 	if apiData.Domain != "" {
-		record.Domain = types.StringValue(string(apiData.Domain))
+		tfData.Domain = types.StringValue(string(apiData.Domain))
 	}
 	if apiData.TTL != 0 {
-		record.TTL = types.Int64Value(int64(apiData.TTL))
+		tfData.TTL = types.Int64Value(int64(apiData.TTL))
 	}
 	if apiData.IPAddress != "" {
-		record.IPAddress = types.StringValue(apiData.IPAddress)
+		tfData.IPAddress = types.StringValue(apiData.IPAddress)
 	}
 	if apiData.Value != "" {
-		record.Value = types.StringValue(apiData.Value)
+		tfData.Value = types.StringValue(apiData.Value)
 	}
-	if apiData.Ptr != false {
-		record.Ptr = types.BoolValue(apiData.Ptr)
+	if apiData.Ptr {
+		tfData.Ptr = types.BoolValue(apiData.Ptr)
 	}
-	if apiData.CreatePtrZone != false {
-		record.CreatePtrZone = types.BoolValue(apiData.CreatePtrZone)
+	if apiData.CreatePtrZone {
+		tfData.CreatePtrZone = types.BoolValue(apiData.CreatePtrZone)
 	}
-	if apiData.UpdateSvcbHints != false {
-		record.UpdateSvcbHints = types.BoolValue(apiData.UpdateSvcbHints)
+	if apiData.UpdateSvcbHints {
+		tfData.UpdateSvcbHints = types.BoolValue(apiData.UpdateSvcbHints)
 	}
 	if apiData.NameServer != "" {
-		record.NameServer = types.StringValue(apiData.NameServer)
+		tfData.NameServer = types.StringValue(apiData.NameServer)
 	}
 	if apiData.Glue != "" {
-		record.Glue = types.StringValue(apiData.Glue)
+		tfData.Glue = types.StringValue(apiData.Glue)
 	}
 	if apiData.CName != "" {
-		record.CName = types.StringValue(apiData.CName)
+		tfData.CName = types.StringValue(apiData.CName)
 	}
 	if apiData.PtrName != "" {
-		record.PtrName = types.StringValue(apiData.PtrName)
+		tfData.PtrName = types.StringValue(apiData.PtrName)
 	}
 	if apiData.Exchange != "" {
-		record.Exchange = types.StringValue(apiData.Exchange)
+		tfData.Exchange = types.StringValue(apiData.Exchange)
 	}
 	if apiData.Preference != 0 {
-		record.Preference = types.Int64Value(int64(apiData.Preference))
+		tfData.Preference = types.Int64Value(int64(apiData.Preference))
 	}
 	if apiData.Text != "" {
-		record.Text = types.StringValue(apiData.Text)
+		tfData.Text = types.StringValue(apiData.Text)
 	}
-	if apiData.SplitText != false {
-		record.SplitText = types.BoolValue(apiData.SplitText)
+	if apiData.SplitText {
+		tfData.SplitText = types.BoolValue(apiData.SplitText)
 	}
 	if apiData.Mailbox != "" {
-		record.Mailbox = types.StringValue(apiData.Mailbox)
+		tfData.Mailbox = types.StringValue(apiData.Mailbox)
 	}
 	if apiData.TxtDomain != "" {
-		record.TxtDomain = types.StringValue(apiData.TxtDomain)
+		tfData.TxtDomain = types.StringValue(apiData.TxtDomain)
 	}
 	if apiData.Priority != 0 {
-		record.Priority = types.Int64Value(int64(apiData.Priority))
+		tfData.Priority = types.Int64Value(int64(apiData.Priority))
 	}
 	if apiData.Weight != 0 {
-		record.Weight = types.Int64Value(int64(apiData.Weight))
+		tfData.Weight = types.Int64Value(int64(apiData.Weight))
 	}
 	if apiData.Port != 0 {
-		record.Port = types.Int64Value(int64(apiData.Port))
+		tfData.Port = types.Int64Value(int64(apiData.Port))
 	}
 	if apiData.Target != "" {
-		record.Target = types.StringValue(string(apiData.Target))
+		tfData.Target = types.StringValue(string(apiData.Target))
 	}
 	if apiData.NaptrOrder != 0 {
-		record.NaptrOrder = types.Int64Value(int64(apiData.NaptrOrder))
+		tfData.NaptrOrder = types.Int64Value(int64(apiData.NaptrOrder))
 	}
 	if apiData.NaptrPreference != 0 {
-		record.NaptrPreference = types.Int64Value(int64(apiData.NaptrPreference))
+		tfData.NaptrPreference = types.Int64Value(int64(apiData.NaptrPreference))
 	}
 	if apiData.NaptrFlags != "" {
-		record.NaptrFlags = types.StringValue(apiData.NaptrFlags)
+		tfData.NaptrFlags = types.StringValue(apiData.NaptrFlags)
 	}
 	if apiData.NaptrServices != "" {
-		record.NaptrServices = types.StringValue(apiData.NaptrServices)
+		tfData.NaptrServices = types.StringValue(apiData.NaptrServices)
 	}
 	if apiData.NaptrRegexp != "" {
-		record.NaptrRegexp = types.StringValue(apiData.NaptrRegexp)
+		tfData.NaptrRegexp = types.StringValue(apiData.NaptrRegexp)
 	}
 	if apiData.NaptrReplacement != "" {
-		record.NaptrReplacement = types.StringValue(apiData.NaptrReplacement)
+		tfData.NaptrReplacement = types.StringValue(apiData.NaptrReplacement)
 	}
 	if apiData.DName != "" {
-		record.DName = types.StringValue(apiData.DName)
+		tfData.DName = types.StringValue(apiData.DName)
 	}
 	if apiData.KeyTag != 0 {
-		record.KeyTag = types.Int64Value(int64(apiData.KeyTag))
+		tfData.KeyTag = types.Int64Value(int64(apiData.KeyTag))
 	}
 	if apiData.Algorithm != "" {
-		record.Algorithm = types.StringValue(apiData.Algorithm)
+		tfData.Algorithm = types.StringValue(apiData.Algorithm)
 	}
 	if apiData.DigestType != "" {
-		record.DigestType = types.StringValue(apiData.DigestType)
+		tfData.DigestType = types.StringValue(apiData.DigestType)
 	}
 	if apiData.Digest != "" {
-		record.Digest = types.StringValue(apiData.Digest)
+		tfData.Digest = types.StringValue(apiData.Digest)
 	}
 	if apiData.SshfpAlgorithm != "" {
-		record.SshfpAlgorithm = types.StringValue(apiData.SshfpAlgorithm)
+		tfData.SshfpAlgorithm = types.StringValue(apiData.SshfpAlgorithm)
 	}
 	if apiData.SshfpFingerprintType != "" {
-		record.SshfpFingerprintType = types.StringValue(apiData.SshfpFingerprintType)
+		tfData.SshfpFingerprintType = types.StringValue(apiData.SshfpFingerprintType)
 	}
 	if apiData.SshfpFingerprint != "" {
-		record.SshfpFingerprint = types.StringValue(apiData.SshfpFingerprint)
+		tfData.SshfpFingerprint = types.StringValue(apiData.SshfpFingerprint)
 	}
 	if apiData.TlsaCertificateUsage != "" {
-		record.TlsaCertificateUsage = types.StringValue(apiData.TlsaCertificateUsage)
+		tfData.TlsaCertificateUsage = types.StringValue(apiData.TlsaCertificateUsage)
 	}
 	if apiData.TlsaSelector != "" {
-		record.TlsaSelector = types.StringValue(apiData.TlsaSelector)
+		tfData.TlsaSelector = types.StringValue(apiData.TlsaSelector)
 	}
 	if apiData.TlsaMatchingType != "" {
-		record.TlsaMatchingType = types.StringValue(apiData.TlsaMatchingType)
+		tfData.TlsaMatchingType = types.StringValue(apiData.TlsaMatchingType)
 	}
 	if apiData.TlsaCertificateAssociationData != "" {
-		record.TlsaCertificateAssociationData = types.StringValue(apiData.TlsaCertificateAssociationData)
+		tfData.TlsaCertificateAssociationData = types.StringValue(apiData.TlsaCertificateAssociationData)
 	}
 	if apiData.SvcPriority != 0 {
-		record.SvcPriority = types.Int64Value(int64(apiData.SvcPriority))
+		tfData.SvcPriority = types.Int64Value(int64(apiData.SvcPriority))
 	}
 	if apiData.SvcTargetName != "" {
-		record.SvcTargetName = types.StringValue(apiData.SvcTargetName)
+		tfData.SvcTargetName = types.StringValue(apiData.SvcTargetName)
 	}
 	if apiData.SvcParams != "" {
-		record.SvcParams = types.StringValue(apiData.SvcParams)
+		tfData.SvcParams = types.StringValue(apiData.SvcParams)
 	}
-	if apiData.AutoIpv4Hint != false {
-		record.AutoIpv4Hint = types.BoolValue(apiData.AutoIpv4Hint)
+	if apiData.AutoIpv4Hint {
+		tfData.AutoIpv4Hint = types.BoolValue(apiData.AutoIpv4Hint)
 	}
-	if apiData.AutoIpv6Hint != false {
-		record.AutoIpv6Hint = types.BoolValue(apiData.AutoIpv6Hint)
+	if apiData.AutoIpv6Hint {
+		tfData.AutoIpv6Hint = types.BoolValue(apiData.AutoIpv6Hint)
 	}
 	if apiData.UriPriority != 0 {
-		record.UriPriority = types.Int64Value(int64(apiData.UriPriority))
+		tfData.UriPriority = types.Int64Value(int64(apiData.UriPriority))
 	}
 	if apiData.UriWeight != 0 {
-		record.UriWeight = types.Int64Value(int64(apiData.UriWeight))
+		tfData.UriWeight = types.Int64Value(int64(apiData.UriWeight))
 	}
 	if apiData.Uri != "" {
-		record.Uri = types.StringValue(apiData.Uri)
+		tfData.Uri = types.StringValue(apiData.Uri)
 	}
 	if apiData.Flags != "" {
-		record.Flags = types.StringValue(apiData.Flags)
+		tfData.Flags = types.StringValue(apiData.Flags)
 	}
 	if apiData.Tag != "" {
-		record.Tag = types.StringValue(apiData.Tag)
+		tfData.Tag = types.StringValue(apiData.Tag)
 	}
 	if apiData.Value != "" {
-		record.Value = types.StringValue(apiData.Value)
+		tfData.Value = types.StringValue(apiData.Value)
 	}
 	if apiData.AName != "" {
-		record.AName = types.StringValue(apiData.AName)
+		tfData.AName = types.StringValue(apiData.AName)
 	}
 	if apiData.Forwarder != "" {
-		record.Forwarder = types.StringValue(apiData.Forwarder)
+		tfData.Forwarder = types.StringValue(apiData.Forwarder)
 	}
 	if apiData.ForwarderPriority != 0 {
-		record.ForwarderPriority = types.Int64Value(int64(apiData.ForwarderPriority))
+		tfData.ForwarderPriority = types.Int64Value(int64(apiData.ForwarderPriority))
 	}
-	if apiData.DnssecValidation != false {
-		record.DnssecValidation = types.BoolValue(apiData.DnssecValidation)
+	if apiData.DnssecValidation {
+		tfData.DnssecValidation = types.BoolValue(apiData.DnssecValidation)
 	}
 	if apiData.ProxyType != "" {
-		record.ProxyType = types.StringValue(apiData.ProxyType)
+		tfData.ProxyType = types.StringValue(apiData.ProxyType)
 	}
 	if apiData.ProxyAddress != "" {
-		record.ProxyAddress = types.StringValue(apiData.ProxyAddress)
+		tfData.ProxyAddress = types.StringValue(apiData.ProxyAddress)
 	}
 	if apiData.ProxyPort != 0 {
-		record.ProxyPort = types.Int64Value(int64(apiData.ProxyPort))
+		tfData.ProxyPort = types.Int64Value(int64(apiData.ProxyPort))
 	}
 	if apiData.ProxyUsername != "" {
-		record.ProxyUsername = types.StringValue(apiData.ProxyUsername)
+		tfData.ProxyUsername = types.StringValue(apiData.ProxyUsername)
 	}
 	if apiData.ProxyPassword != "" {
-		record.ProxyPassword = types.StringValue(apiData.ProxyPassword)
+		tfData.ProxyPassword = types.StringValue(apiData.ProxyPassword)
 	}
 	if apiData.AppName != "" {
-		record.AppName = types.StringValue(apiData.AppName)
+		tfData.AppName = types.StringValue(apiData.AppName)
 	}
 	if apiData.ClassPath != "" {
-		record.ClassPath = types.StringValue(apiData.ClassPath)
+		tfData.ClassPath = types.StringValue(apiData.ClassPath)
 	}
 	if apiData.RecordData != "" {
-		record.RecordData = types.StringValue(apiData.RecordData)
+		tfData.RecordData = types.StringValue(apiData.RecordData)
 	}
-	return record
 }

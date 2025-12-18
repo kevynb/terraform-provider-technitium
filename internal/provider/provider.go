@@ -69,7 +69,7 @@ func (p *TechnitiumDNSProvider) Configure(ctx context.Context, req provider.Conf
 	resp.Diagnostics.Append(req.Config.Get(ctx, &confData)...) // Extract config data
 
 	apiURL := os.Getenv("TECHNITIUM_API_URL")
-	if !(confData.APIURL.IsUnknown() || confData.APIURL.IsNull()) {
+	if !confData.APIURL.IsUnknown() && !confData.APIURL.IsNull() {
 		apiURL = confData.APIURL.ValueString()
 	}
 	if apiURL == "" {
@@ -84,7 +84,7 @@ func (p *TechnitiumDNSProvider) Configure(ctx context.Context, req provider.Conf
 	}
 
 	token := os.Getenv("TECHNITIUM_API_TOKEN")
-	if !(confData.Token.IsUnknown() || confData.Token.IsNull()) {
+	if !confData.Token.IsUnknown() && !confData.Token.IsNull() {
 		token = confData.Token.ValueString()
 	}
 	if token == "" && p.version != "unittest" {
@@ -99,7 +99,7 @@ func (p *TechnitiumDNSProvider) Configure(ctx context.Context, req provider.Conf
 	}
 
 	skipCertificateVerification := false
-	if !(confData.SkipCertificateVerification.IsUnknown() || confData.SkipCertificateVerification.IsNull()) {
+	if !confData.SkipCertificateVerification.IsUnknown() && !confData.SkipCertificateVerification.IsNull() {
 		skipCertificateVerification = confData.SkipCertificateVerification.ValueBool()
 	}
 
@@ -119,6 +119,7 @@ func (p *TechnitiumDNSProvider) Configure(ctx context.Context, req provider.Conf
 func (p *TechnitiumDNSProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		RecordResourceFactory(&p.reqMutex),
+		ZoneResourceFactory(&p.reqMutex),
 	}
 }
 

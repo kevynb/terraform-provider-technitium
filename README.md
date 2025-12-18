@@ -41,18 +41,24 @@ provider "technitium" {
 ### Example Usage
 
 ```hcl
-resource "technitium_dns_record" "example" {
-  domain     = "test.example.com"
-  type       = "A"
-  ttl        = 3600
-  ip_address = "192.168.1.1"
+resource "technitium_zone" "example_zone" {
+  name = "example.net"
+  type = "Primary"
+}
+
+resource "technitium_record" "example" {
+  zone   = technitium_zone.example_zone.name
+  domain = "test.example.com"
+  type   = "A"
+  ttl    = 3600
+  ip_address  = "192.168.1.1"
 }
 ```
 
 #### Advanced Example
 
 ```hcl
-resource "technitium_dns_record" "srv_record" {
+resource "technitium_record" "srv_record" {
   zone        = "example.com"
   domain      = "service.example.com"
   type        = "SRV"
@@ -63,7 +69,7 @@ resource "technitium_dns_record" "srv_record" {
   target      = "target.example.com"
 }
 
-resource "technitium_dns_record" "app_record" {
+resource "technitium_record" "app_record" {
   zone       = "example.com"
   domain     = "app.example.com"
   type       = "APP"
@@ -74,6 +80,13 @@ resource "technitium_dns_record" "app_record" {
     "tailscale": ["100.115.192.11", "fd7a:115c:a1e0:ab12:4843:ac32:9911:da02"],
     "private": ["192.168.1.50"]
   })
+}
+
+resource "technitium_record" "my_cname" {
+  domain = "alias.example.com"
+  type   = "CNAME"
+  cname  = "target.example.com"
+  ttl    = 3600
 }
 ```
 
