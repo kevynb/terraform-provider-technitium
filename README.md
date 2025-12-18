@@ -150,3 +150,8 @@ Contributions are welcome! To contribute:
 ## Thanks
 
 This project is based on [terraform-provider-godaddy-dns](https://github.com/veksh/terraform-provider-godaddy-dns). Special thanks to the contributors for their foundational work.
+
+## Contributors
+
+These people helped improve the project!
+- [@dscain](https://github.com/dscain)
