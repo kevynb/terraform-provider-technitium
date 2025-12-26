@@ -63,6 +63,23 @@ type DNSZone struct {
 	SyncFailed   bool        `json:"syncFailed"`
 	LastModified string      `json:"lastModified"`
 	Disabled     bool        `json:"disabled"`
+
+	// Zone creation parameters
+	Catalog                    string `json:"catalog,omitempty"`
+	UseSoaSerialDateScheme     *bool  `json:"useSoaSerialDateScheme,omitempty"`
+	PrimaryNameServerAddresses string `json:"primaryNameServerAddresses,omitempty"`
+	ZoneTransferProtocol       string `json:"zoneTransferProtocol,omitempty"`
+	TsigKeyName                string `json:"tsigKeyName,omitempty"`
+	ValidateZone               *bool  `json:"validateZone,omitempty"`
+	InitializeForwarder        *bool  `json:"initializeForwarder,omitempty"`
+	Protocol                   string `json:"protocol,omitempty"`
+	Forwarder                  string `json:"forwarder,omitempty"`
+	DnssecValidation           *bool  `json:"dnssecValidation,omitempty"`
+	ProxyType                  string `json:"proxyType,omitempty"`
+	ProxyAddress               string `json:"proxyAddress,omitempty"`
+	ProxyPort                  *int64 `json:"proxyPort,omitempty"`
+	ProxyUsername              string `json:"proxyUsername,omitempty"`
+	ProxyPassword              string `json:"proxyPassword,omitempty"`
 }
 
 type DNSRecord struct {
