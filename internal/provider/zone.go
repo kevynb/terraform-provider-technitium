@@ -439,10 +439,63 @@ func setZoneLogCtx(ctx context.Context, tfZone tfDNSZone, op string) context.Con
 }
 
 func tfZone2model(tfData tfDNSZone) model.DNSZone {
-	return model.DNSZone{
+	zone := model.DNSZone{
 		Name: tfData.Name.ValueString(),
 		Type: model.DNSZoneType(tfData.Type.ValueString()),
 	}
+
+	if !tfData.Catalog.IsNull() {
+		zone.Catalog = tfData.Catalog.ValueString()
+	}
+	if !tfData.UseSoaSerialDateScheme.IsNull() {
+		v := tfData.UseSoaSerialDateScheme.ValueBool()
+		zone.UseSoaSerialDateScheme = &v
+	}
+	if !tfData.PrimaryNameServerAddresses.IsNull() {
+		zone.PrimaryNameServerAddresses = tfData.PrimaryNameServerAddresses.ValueString()
+	}
+	if !tfData.ZoneTransferProtocol.IsNull() {
+		zone.ZoneTransferProtocol = tfData.ZoneTransferProtocol.ValueString()
+	}
+	if !tfData.TsigKeyName.IsNull() {
+		zone.TsigKeyName = tfData.TsigKeyName.ValueString()
+	}
+	if !tfData.ValidateZone.IsNull() {
+		v := tfData.ValidateZone.ValueBool()
+		zone.ValidateZone = &v
+	}
+	if !tfData.InitializeForwarder.IsNull() {
+		v := tfData.InitializeForwarder.ValueBool()
+		zone.InitializeForwarder = &v
+	}
+	if !tfData.Protocol.IsNull() {
+		zone.Protocol = tfData.Protocol.ValueString()
+	}
+	if !tfData.Forwarder.IsNull() {
+		zone.Forwarder = tfData.Forwarder.ValueString()
+	}
+	if !tfData.DnssecValidation.IsNull() {
+		v := tfData.DnssecValidation.ValueBool()
+		zone.DnssecValidation = &v
+	}
+	if !tfData.ProxyType.IsNull() {
+		zone.ProxyType = tfData.ProxyType.ValueString()
+	}
+	if !tfData.ProxyAddress.IsNull() {
+		zone.ProxyAddress = tfData.ProxyAddress.ValueString()
+	}
+	if !tfData.ProxyPort.IsNull() {
+		v := tfData.ProxyPort.ValueInt64()
+		zone.ProxyPort = &v
+	}
+	if !tfData.ProxyUsername.IsNull() {
+		zone.ProxyUsername = tfData.ProxyUsername.ValueString()
+	}
+	if !tfData.ProxyPassword.IsNull() {
+		zone.ProxyPassword = tfData.ProxyPassword.ValueString()
+	}
+
+	return zone
 }
 
 func modelZone2tf(apiData model.DNSZone) tfDNSZone {
