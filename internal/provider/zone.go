@@ -112,18 +112,22 @@ func (r *ZoneResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"protocol": rschema.StringAttribute{
 				MarkdownDescription: "The DNS transport protocol to be used by the Conditional Forwarder zone. Valid values are `Udp`, `Tcp`, `Tls`, `Https`, `Quic`.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"forwarder": rschema.StringAttribute{
 				MarkdownDescription: "The address of the DNS server to be used as a forwarder. Required for Conditional Forwarder zones.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"dnssec_validation": rschema.BoolAttribute{
 				MarkdownDescription: "Set to `true` to enable DNSSEC validation. Valid for Conditional Forwarder zones.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"proxy_type": rschema.StringAttribute{
 				MarkdownDescription: "The type of proxy to be used for conditional forwarding. Valid values are `NoProxy`, `DefaultProxy`, `Http`, `Socks5`.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"proxy_address": rschema.StringAttribute{
 				MarkdownDescription: "The proxy server address.",
@@ -186,6 +190,49 @@ func (r *ZoneResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
+	// Read back the zone to get computed values
+	zoneName := planData.Name.ValueString()
+	zones, err := r.client.ListZones(ctx)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error",
+			fmt.Sprintf("Unable to read zone after create: %s", err))
+		return
+	}
+
+	for _, zone := range zones {
+		if zone.Name == zoneName {
+			// For Forwarder zones, fetch the FWD record to get forwarder configuration
+			if zone.Type == model.ZONE_FORWARDER || zone.Type == model.ZONE_SECONDARYFORWARDER {
+				records, err := r.client.GetZoneRecords(ctx, zoneName)
+				if err != nil {
+					tflog.Warn(ctx, fmt.Sprintf("Failed to fetch zone records for forwarder config: %s", err))
+				} else {
+					for _, record := range records {
+						if record.Type == model.REC_FWD {
+							zone.Forwarder = record.Forwarder
+							zone.Protocol = record.Protocol
+							if record.DnssecValidation {
+								v := true
+								zone.DnssecValidation = &v
+							}
+							zone.ProxyType = record.ProxyType
+							zone.ProxyAddress = record.ProxyAddress
+							if record.ProxyPort > 0 {
+								v := int64(record.ProxyPort)
+								zone.ProxyPort = &v
+							}
+							zone.ProxyUsername = record.ProxyUsername
+							zone.ProxyPassword = record.ProxyPassword
+							break
+						}
+					}
+				}
+			}
+			planData = modelZone2tf(zone)
+			break
+		}
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &planData)...)
 }
 
@@ -213,6 +260,33 @@ func (r *ZoneResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	zoneName := stateData.Name.ValueString()
 	for _, zone := range zones {
 		if zone.Name == zoneName {
+			// For Forwarder zones, fetch the FWD record to get forwarder configuration
+			if zone.Type == model.ZONE_FORWARDER || zone.Type == model.ZONE_SECONDARYFORWARDER {
+				records, err := r.client.GetZoneRecords(ctx, zoneName)
+				if err != nil {
+					tflog.Warn(ctx, fmt.Sprintf("Failed to fetch zone records for forwarder config: %s", err))
+				} else {
+					for _, record := range records {
+						if record.Type == model.REC_FWD {
+							zone.Forwarder = record.Forwarder
+							zone.Protocol = record.Protocol
+							if record.DnssecValidation {
+								v := true
+								zone.DnssecValidation = &v
+							}
+							zone.ProxyType = record.ProxyType
+							zone.ProxyAddress = record.ProxyAddress
+							if record.ProxyPort > 0 {
+								v := int64(record.ProxyPort)
+								zone.ProxyPort = &v
+							}
+							zone.ProxyUsername = record.ProxyUsername
+							zone.ProxyPassword = record.ProxyPassword
+							break
+						}
+					}
+				}
+			}
 			stateData = modelZone2tf(zone)
 			resp.Diagnostics.Append(resp.State.Set(ctx, &stateData)...)
 			return
@@ -258,6 +332,49 @@ func (r *ZoneResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		resp.Diagnostics.AddError("Client Error",
 			fmt.Sprintf("Unable to create new zone: %s", err))
 		return
+	}
+
+	// Read back the zone to get computed values
+	zoneName := planData.Name.ValueString()
+	zones, err := r.client.ListZones(ctx)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error",
+			fmt.Sprintf("Unable to read zone after update: %s", err))
+		return
+	}
+
+	for _, zone := range zones {
+		if zone.Name == zoneName {
+			// For Forwarder zones, fetch the FWD record to get forwarder configuration
+			if zone.Type == model.ZONE_FORWARDER || zone.Type == model.ZONE_SECONDARYFORWARDER {
+				records, err := r.client.GetZoneRecords(ctx, zoneName)
+				if err != nil {
+					tflog.Warn(ctx, fmt.Sprintf("Failed to fetch zone records for forwarder config: %s", err))
+				} else {
+					for _, record := range records {
+						if record.Type == model.REC_FWD {
+							zone.Forwarder = record.Forwarder
+							zone.Protocol = record.Protocol
+							if record.DnssecValidation {
+								v := true
+								zone.DnssecValidation = &v
+							}
+							zone.ProxyType = record.ProxyType
+							zone.ProxyAddress = record.ProxyAddress
+							if record.ProxyPort > 0 {
+								v := int64(record.ProxyPort)
+								zone.ProxyPort = &v
+							}
+							zone.ProxyUsername = record.ProxyUsername
+							zone.ProxyPassword = record.ProxyPassword
+							break
+						}
+					}
+				}
+			}
+			planData = modelZone2tf(zone)
+			break
+		}
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &planData)...)
@@ -499,10 +616,59 @@ func tfZone2model(tfData tfDNSZone) model.DNSZone {
 }
 
 func modelZone2tf(apiData model.DNSZone) tfDNSZone {
-	return tfDNSZone{
+	result := tfDNSZone{
 		Name: types.StringValue(apiData.Name),
 		Type: types.StringValue(string(apiData.Type)),
 	}
+
+	// Populate optional fields if they have values
+	if apiData.Catalog != "" {
+		result.Catalog = types.StringValue(apiData.Catalog)
+	}
+	if apiData.UseSoaSerialDateScheme != nil {
+		result.UseSoaSerialDateScheme = types.BoolValue(*apiData.UseSoaSerialDateScheme)
+	}
+	if apiData.PrimaryNameServerAddresses != "" {
+		result.PrimaryNameServerAddresses = types.StringValue(apiData.PrimaryNameServerAddresses)
+	}
+	if apiData.ZoneTransferProtocol != "" {
+		result.ZoneTransferProtocol = types.StringValue(apiData.ZoneTransferProtocol)
+	}
+	if apiData.TsigKeyName != "" {
+		result.TsigKeyName = types.StringValue(apiData.TsigKeyName)
+	}
+	if apiData.ValidateZone != nil {
+		result.ValidateZone = types.BoolValue(*apiData.ValidateZone)
+	}
+	if apiData.InitializeForwarder != nil {
+		result.InitializeForwarder = types.BoolValue(*apiData.InitializeForwarder)
+	}
+	if apiData.Protocol != "" {
+		result.Protocol = types.StringValue(apiData.Protocol)
+	}
+	if apiData.Forwarder != "" {
+		result.Forwarder = types.StringValue(apiData.Forwarder)
+	}
+	if apiData.DnssecValidation != nil {
+		result.DnssecValidation = types.BoolValue(*apiData.DnssecValidation)
+	}
+	if apiData.ProxyType != "" {
+		result.ProxyType = types.StringValue(apiData.ProxyType)
+	}
+	if apiData.ProxyAddress != "" {
+		result.ProxyAddress = types.StringValue(apiData.ProxyAddress)
+	}
+	if apiData.ProxyPort != nil {
+		result.ProxyPort = types.Int64Value(*apiData.ProxyPort)
+	}
+	if apiData.ProxyUsername != "" {
+		result.ProxyUsername = types.StringValue(apiData.ProxyUsername)
+	}
+	if apiData.ProxyPassword != "" {
+		result.ProxyPassword = types.StringValue(apiData.ProxyPassword)
+	}
+
+	return result
 }
 
 func modelZone2tfDataSource(apiData model.DNSZone) tfDNSZoneDataSource {

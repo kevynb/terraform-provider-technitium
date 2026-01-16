@@ -130,6 +130,7 @@ type apiDNSRecordResponseItemRdata struct {
 	Tag                            string `json:"tag,omitempty"`
 	Value                          string `json:"value,omitempty"`
 	AName                          string `json:"aname,omitempty"`
+	Protocol                       string `json:"protocol,omitempty"`
 	Forwarder                      string `json:"forwarder,omitempty"`
 	ForwarderPriority              uint16 `json:"forwarderPriority,omitempty"`
 	DnssecValidation               bool   `json:"dnssecValidation,omitempty"`
@@ -1019,6 +1020,27 @@ func (c Client) DeleteRecord(ctx context.Context, record model.DNSRecord) error 
 	return c.makeRecordsRequest(ctx, "/delete", http.MethodGet, params, nil, nil)
 }
 
+// GetZoneRecords retrieves all DNS records for a given zone.
+func (c Client) GetZoneRecords(ctx context.Context, zoneName string) ([]model.DNSRecord, error) {
+	params := url.Values{}
+	params.Add("zone", zoneName)
+	params.Add("domain", zoneName)
+	params.Add("listZone", "true")
+
+	var apiResponse apiResponse
+	err := c.makeRecordsRequest(ctx, "/get", http.MethodGet, params, nil, &apiResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]model.DNSRecord, len(apiResponse.Response.Records))
+	for i, rr := range apiResponse.Response.Records {
+		res[i] = mapAPIDNSRecordToDNSRecord(rr, zoneName)
+	}
+
+	return res, nil
+}
+
 // ListZones retrieves all DNS zones from the server.
 func (c Client) ListZones(ctx context.Context) ([]model.DNSZone, error) {
 	var apiResponse struct {
@@ -1195,6 +1217,7 @@ func mapAPIDNSRecordToDNSRecord(apiRecord apiDNSRecordResponseItem, zone string)
 
 		AName: apiRecord.RData.AName,
 
+		Protocol:          apiRecord.RData.Protocol,
 		Forwarder:         apiRecord.RData.Forwarder,
 		ForwarderPriority: apiRecord.RData.ForwarderPriority,
 		DnssecValidation:  apiRecord.RData.DnssecValidation,

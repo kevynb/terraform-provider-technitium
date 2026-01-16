@@ -157,6 +157,7 @@ type DNSRecord struct {
 
 	AName string // This parameter is required for adding the ANAME record.
 
+	Protocol          string // This parameter is optional for adding the FWD record (Udp, Tcp, Tls, Https, Quic).
 	Forwarder         string // This parameter is required for adding the FWD record.
 	ForwarderPriority uint16 // This parameter is required for adding the FWD record.
 	DnssecValidation  bool   // This parameter is optional for adding the FWD record.
@@ -236,6 +237,7 @@ func (r DNSRecord) SameKey(r1 DNSRecord) bool {
 // client API interface
 type DNSApiClient interface {
 	GetRecords(ctx context.Context, domain DNSRecordName) ([]DNSRecord, error)
+	GetZoneRecords(ctx context.Context, zoneName string) ([]DNSRecord, error)
 	AddRecord(ctx context.Context, record DNSRecord) error
 	UpdateRecord(ctx context.Context, oldRecord DNSRecord, newRecord DNSRecord) error
 	DeleteRecord(ctx context.Context, record DNSRecord) error
