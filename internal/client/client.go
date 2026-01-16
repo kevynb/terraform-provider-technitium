@@ -130,6 +130,7 @@ type apiDNSRecordResponseItemRdata struct {
 	Tag                            string `json:"tag,omitempty"`
 	Value                          string `json:"value,omitempty"`
 	AName                          string `json:"aname,omitempty"`
+	Protocol                       string `json:"protocol,omitempty"`
 	Forwarder                      string `json:"forwarder,omitempty"`
 	ForwarderPriority              uint16 `json:"forwarderPriority,omitempty"`
 	DnssecValidation               bool   `json:"dnssecValidation,omitempty"`
@@ -1019,6 +1020,27 @@ func (c Client) DeleteRecord(ctx context.Context, record model.DNSRecord) error 
 	return c.makeRecordsRequest(ctx, "/delete", http.MethodGet, params, nil, nil)
 }
 
+// GetZoneRecords retrieves all DNS records for a given zone.
+func (c Client) GetZoneRecords(ctx context.Context, zoneName string) ([]model.DNSRecord, error) {
+	params := url.Values{}
+	params.Add("zone", zoneName)
+	params.Add("domain", zoneName)
+	params.Add("listZone", "true")
+
+	var apiResponse apiResponse
+	err := c.makeRecordsRequest(ctx, "/get", http.MethodGet, params, nil, &apiResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]model.DNSRecord, len(apiResponse.Response.Records))
+	for i, rr := range apiResponse.Response.Records {
+		res[i] = mapAPIDNSRecordToDNSRecord(rr, zoneName)
+	}
+
+	return res, nil
+}
+
 // ListZones retrieves all DNS zones from the server.
 func (c Client) ListZones(ctx context.Context) ([]model.DNSZone, error) {
 	var apiResponse struct {
@@ -1045,6 +1067,53 @@ func (c Client) CreateZone(ctx context.Context, zone model.DNSZone) error {
 	formData := url.Values{
 		"zone": {zone.Name},
 		"type": {string(zone.Type)},
+	}
+
+	// Add optional parameters based on zone configuration
+	if zone.Catalog != "" {
+		formData.Set("catalog", zone.Catalog)
+	}
+	if zone.UseSoaSerialDateScheme != nil {
+		formData.Set("useSoaSerialDateScheme", fmt.Sprintf("%t", *zone.UseSoaSerialDateScheme))
+	}
+	if zone.PrimaryNameServerAddresses != "" {
+		formData.Set("primaryNameServerAddresses", zone.PrimaryNameServerAddresses)
+	}
+	if zone.ZoneTransferProtocol != "" {
+		formData.Set("zoneTransferProtocol", zone.ZoneTransferProtocol)
+	}
+	if zone.TsigKeyName != "" {
+		formData.Set("tsigKeyName", zone.TsigKeyName)
+	}
+	if zone.ValidateZone != nil {
+		formData.Set("validateZone", fmt.Sprintf("%t", *zone.ValidateZone))
+	}
+	if zone.InitializeForwarder != nil {
+		formData.Set("initializeForwarder", fmt.Sprintf("%t", *zone.InitializeForwarder))
+	}
+	if zone.Protocol != "" {
+		formData.Set("protocol", zone.Protocol)
+	}
+	if zone.Forwarder != "" {
+		formData.Set("forwarder", zone.Forwarder)
+	}
+	if zone.DnssecValidation != nil {
+		formData.Set("dnssecValidation", fmt.Sprintf("%t", *zone.DnssecValidation))
+	}
+	if zone.ProxyType != "" {
+		formData.Set("proxyType", zone.ProxyType)
+	}
+	if zone.ProxyAddress != "" {
+		formData.Set("proxyAddress", zone.ProxyAddress)
+	}
+	if zone.ProxyPort != nil {
+		formData.Set("proxyPort", fmt.Sprintf("%d", *zone.ProxyPort))
+	}
+	if zone.ProxyUsername != "" {
+		formData.Set("proxyUsername", zone.ProxyUsername)
+	}
+	if zone.ProxyPassword != "" {
+		formData.Set("proxyPassword", zone.ProxyPassword)
 	}
 
 	return c.makeZonesRequest(ctx, "/create", http.MethodPost, nil, formData, nil)
@@ -1148,6 +1217,7 @@ func mapAPIDNSRecordToDNSRecord(apiRecord apiDNSRecordResponseItem, zone string)
 
 		AName: apiRecord.RData.AName,
 
+		Protocol:          apiRecord.RData.Protocol,
 		Forwarder:         apiRecord.RData.Forwarder,
 		ForwarderPriority: apiRecord.RData.ForwarderPriority,
 		DnssecValidation:  apiRecord.RData.DnssecValidation,

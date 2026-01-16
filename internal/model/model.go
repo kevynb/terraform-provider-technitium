@@ -63,6 +63,23 @@ type DNSZone struct {
 	SyncFailed   bool        `json:"syncFailed"`
 	LastModified string      `json:"lastModified"`
 	Disabled     bool        `json:"disabled"`
+
+	// Zone creation parameters
+	Catalog                    string `json:"catalog,omitempty"`
+	UseSoaSerialDateScheme     *bool  `json:"useSoaSerialDateScheme,omitempty"`
+	PrimaryNameServerAddresses string `json:"primaryNameServerAddresses,omitempty"`
+	ZoneTransferProtocol       string `json:"zoneTransferProtocol,omitempty"`
+	TsigKeyName                string `json:"tsigKeyName,omitempty"`
+	ValidateZone               *bool  `json:"validateZone,omitempty"`
+	InitializeForwarder        *bool  `json:"initializeForwarder,omitempty"`
+	Protocol                   string `json:"protocol,omitempty"`
+	Forwarder                  string `json:"forwarder,omitempty"`
+	DnssecValidation           *bool  `json:"dnssecValidation,omitempty"`
+	ProxyType                  string `json:"proxyType,omitempty"`
+	ProxyAddress               string `json:"proxyAddress,omitempty"`
+	ProxyPort                  *int64 `json:"proxyPort,omitempty"`
+	ProxyUsername              string `json:"proxyUsername,omitempty"`
+	ProxyPassword              string `json:"proxyPassword,omitempty"`
 }
 
 type DNSRecord struct {
@@ -140,6 +157,7 @@ type DNSRecord struct {
 
 	AName string // This parameter is required for adding the ANAME record.
 
+	Protocol          string // This parameter is optional for adding the FWD record (Udp, Tcp, Tls, Https, Quic).
 	Forwarder         string // This parameter is required for adding the FWD record.
 	ForwarderPriority uint16 // This parameter is required for adding the FWD record.
 	DnssecValidation  bool   // This parameter is optional for adding the FWD record.
@@ -219,6 +237,7 @@ func (r DNSRecord) SameKey(r1 DNSRecord) bool {
 // client API interface
 type DNSApiClient interface {
 	GetRecords(ctx context.Context, domain DNSRecordName) ([]DNSRecord, error)
+	GetZoneRecords(ctx context.Context, zoneName string) ([]DNSRecord, error)
 	AddRecord(ctx context.Context, record DNSRecord) error
 	UpdateRecord(ctx context.Context, oldRecord DNSRecord, newRecord DNSRecord) error
 	DeleteRecord(ctx context.Context, record DNSRecord) error
