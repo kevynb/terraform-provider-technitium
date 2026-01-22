@@ -132,18 +132,22 @@ func (r *ZoneResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"proxy_address": rschema.StringAttribute{
 				MarkdownDescription: "The proxy server address.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"proxy_port": rschema.Int64Attribute{
 				MarkdownDescription: "The proxy server port.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"proxy_username": rschema.StringAttribute{
 				MarkdownDescription: "The proxy server username.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"proxy_password": rschema.StringAttribute{
 				MarkdownDescription: "The proxy server password.",
 				Optional:            true,
+				Computed:            true,
 				Sensitive:           true,
 			},
 		},
