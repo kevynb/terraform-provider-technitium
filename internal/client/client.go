@@ -81,67 +81,67 @@ type apiDNSRecordResponseItem struct {
 	RData    apiDNSRecordResponseItemRdata `json:"rData,omitempty"`
 }
 type apiDNSRecordResponseItemRdata struct {
-	ExpiryTTL                      uint32 `json:"expiryTtl,omitempty"`
-	IPAddress                      string `json:"ipAddress,omitempty"`
-	Ptr                            bool   `json:"ptr,omitempty"`
-	CreatePtrZone                  bool   `json:"createPtrZone,omitempty"`
-	UpdateSvcbHints                bool   `json:"updateSvcbHints,omitempty"`
-	NameServer                     string `json:"nameServer,omitempty"`
-	Glue                           string `json:"glue,omitempty"`
-	CName                          string `json:"cname,omitempty"`
-	PtrName                        string `json:"ptrName,omitempty"`
-	Exchange                       string `json:"exchange,omitempty"`
-	Preference                     uint16 `json:"preference,omitempty"`
-	Text                           string `json:"text,omitempty"`
-	SplitText                      bool   `json:"splitText,omitempty"`
-	Mailbox                        string `json:"mailbox,omitempty"`
-	TxtDomain                      string `json:"txtDomain,omitempty"`
-	Priority                       uint16 `json:"priority,omitempty"`
-	Weight                         uint16 `json:"weight,omitempty"`
-	Port                           uint16 `json:"port,omitempty"`
-	Target                         string `json:"target,omitempty"`
-	NaptrOrder                     uint16 `json:"naptrOrder,omitempty"`
-	NaptrPreference                uint16 `json:"naptrPreference,omitempty"`
-	NaptrFlags                     string `json:"naptrFlags,omitempty"`
-	NaptrServices                  string `json:"naptrServices,omitempty"`
-	NaptrRegexp                    string `json:"naptrRegexp,omitempty"`
-	NaptrReplacement               string `json:"naptrReplacement,omitempty"`
-	DName                          string `json:"dName,omitempty"`
-	KeyTag                         uint16 `json:"keyTag,omitempty"`
-	Algorithm                      string `json:"algorithm,omitempty"`
-	DigestType                     string `json:"digestType,omitempty"`
-	Digest                         string `json:"digest,omitempty"`
-	SshfpAlgorithm                 string `json:"sshfpAlgorithm,omitempty"`
-	SshfpFingerprintType           string `json:"sshfpFingerprintType,omitempty"`
-	SshfpFingerprint               string `json:"sshfpFingerprint,omitempty"`
-	TlsaCertificateUsage           string `json:"tlsaCertificateUsage,omitempty"`
-	TlsaSelector                   string `json:"tlsaSelector,omitempty"`
-	TlsaMatchingType               string `json:"tlsaMatchingType,omitempty"`
-	TlsaCertificateAssociationData string `json:"tlsaCertificateAssociationData,omitempty"`
-	SvcPriority                    uint16 `json:"svcPriority,omitempty"`
-	SvcTargetName                  string `json:"svcTargetName,omitempty"`
-	SvcParams                      string `json:"svcParams,omitempty"`
-	AutoIpv4Hint                   bool   `json:"autoIpv4Hint,omitempty"`
-	AutoIpv6Hint                   bool   `json:"autoIpv6Hint,omitempty"`
-	UriPriority                    uint16 `json:"uriPriority,omitempty"`
-	UriWeight                      uint16 `json:"uriWeight,omitempty"`
-	Uri                            string `json:"uri,omitempty"`
-	Flags                          string `json:"flags,omitempty"`
-	Tag                            string `json:"tag,omitempty"`
-	Value                          string `json:"value,omitempty"`
-	AName                          string `json:"aname,omitempty"`
-	Protocol                       string `json:"protocol,omitempty"`
-	Forwarder                      string `json:"forwarder,omitempty"`
-	ForwarderPriority              uint16 `json:"forwarderPriority,omitempty"`
-	DnssecValidation               bool   `json:"dnssecValidation,omitempty"`
-	ProxyType                      string `json:"proxyType,omitempty"`
-	ProxyAddress                   string `json:"proxyAddress,omitempty"`
-	ProxyPort                      uint16 `json:"proxyPort,omitempty"`
-	ProxyUsername                  string `json:"proxyUsername,omitempty"`
-	ProxyPassword                  string `json:"proxyPassword,omitempty"`
-	AppName                        string `json:"appName,omitempty"`
-	ClassPath                      string `json:"classPath,omitempty"`
-	RecordData                     string `json:"data,omitempty"`
+	ExpiryTTL                      uint32      `json:"expiryTtl,omitempty"`
+	IPAddress                      string      `json:"ipAddress,omitempty"`
+	Ptr                            bool        `json:"ptr,omitempty"`
+	CreatePtrZone                  bool        `json:"createPtrZone,omitempty"`
+	UpdateSvcbHints                bool        `json:"updateSvcbHints,omitempty"`
+	NameServer                     string      `json:"nameServer,omitempty"`
+	Glue                           string      `json:"glue,omitempty"`
+	CName                          string      `json:"cname,omitempty"`
+	PtrName                        string      `json:"ptrName,omitempty"`
+	Exchange                       string      `json:"exchange,omitempty"`
+	Preference                     uint16      `json:"preference,omitempty"`
+	Text                           string      `json:"text,omitempty"`
+	SplitText                      bool        `json:"splitText,omitempty"`
+	Mailbox                        string      `json:"mailbox,omitempty"`
+	TxtDomain                      string      `json:"txtDomain,omitempty"`
+	Priority                       uint16      `json:"priority,omitempty"`
+	Weight                         uint16      `json:"weight,omitempty"`
+	Port                           uint16      `json:"port,omitempty"`
+	Target                         string      `json:"target,omitempty"`
+	NaptrOrder                     uint16      `json:"naptrOrder,omitempty"`
+	NaptrPreference                uint16      `json:"naptrPreference,omitempty"`
+	NaptrFlags                     string      `json:"naptrFlags,omitempty"`
+	NaptrServices                  string      `json:"naptrServices,omitempty"`
+	NaptrRegexp                    string      `json:"naptrRegexp,omitempty"`
+	NaptrReplacement               string      `json:"naptrReplacement,omitempty"`
+	DName                          string      `json:"dName,omitempty"`
+	KeyTag                         uint16      `json:"keyTag,omitempty"`
+	Algorithm                      string      `json:"algorithm,omitempty"`
+	DigestType                     string      `json:"digestType,omitempty"`
+	Digest                         string      `json:"digest,omitempty"`
+	SshfpAlgorithm                 string      `json:"sshfpAlgorithm,omitempty"`
+	SshfpFingerprintType           string      `json:"sshfpFingerprintType,omitempty"`
+	SshfpFingerprint               string      `json:"sshfpFingerprint,omitempty"`
+	TlsaCertificateUsage           string      `json:"tlsaCertificateUsage,omitempty"`
+	TlsaSelector                   string      `json:"tlsaSelector,omitempty"`
+	TlsaMatchingType               string      `json:"tlsaMatchingType,omitempty"`
+	TlsaCertificateAssociationData string      `json:"tlsaCertificateAssociationData,omitempty"`
+	SvcPriority                    uint16      `json:"svcPriority,omitempty"`
+	SvcTargetName                  string      `json:"svcTargetName,omitempty"`
+	SvcParams                      string      `json:"svcParams,omitempty"`
+	AutoIpv4Hint                   bool        `json:"autoIpv4Hint,omitempty"`
+	AutoIpv6Hint                   bool        `json:"autoIpv6Hint,omitempty"`
+	UriPriority                    uint16      `json:"uriPriority,omitempty"`
+	UriWeight                      uint16      `json:"uriWeight,omitempty"`
+	Uri                            string      `json:"uri,omitempty"`
+	Flags                          string      `json:"flags,omitempty"`
+	Tag                            string      `json:"tag,omitempty"`
+	Value                          string      `json:"value,omitempty"`
+	AName                          string      `json:"aname,omitempty"`
+	Protocol                       json.Number `json:"protocol,omitempty"`
+	Forwarder                      string      `json:"forwarder,omitempty"`
+	ForwarderPriority              uint16      `json:"forwarderPriority,omitempty"`
+	DnssecValidation               bool        `json:"dnssecValidation,omitempty"`
+	ProxyType                      string      `json:"proxyType,omitempty"`
+	ProxyAddress                   string      `json:"proxyAddress,omitempty"`
+	ProxyPort                      uint16      `json:"proxyPort,omitempty"`
+	ProxyUsername                  string      `json:"proxyUsername,omitempty"`
+	ProxyPassword                  string      `json:"proxyPassword,omitempty"`
+	AppName                        string      `json:"appName,omitempty"`
+	ClassPath                      string      `json:"classPath,omitempty"`
+	RecordData                     string      `json:"data,omitempty"`
 }
 
 func (c Client) makeRecordsRequest(ctx context.Context, path string, method string, queryParams url.Values, formData url.Values, apiResponse *apiResponse) error {
@@ -1217,7 +1217,7 @@ func mapAPIDNSRecordToDNSRecord(apiRecord apiDNSRecordResponseItem, zone string)
 
 		AName: apiRecord.RData.AName,
 
-		Protocol:          apiRecord.RData.Protocol,
+		Protocol:          apiRecord.RData.Protocol.String(),
 		Forwarder:         apiRecord.RData.Forwarder,
 		ForwarderPriority: apiRecord.RData.ForwarderPriority,
 		DnssecValidation:  apiRecord.RData.DnssecValidation,
