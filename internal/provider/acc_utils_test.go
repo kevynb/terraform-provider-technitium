@@ -51,7 +51,7 @@ func testAccClient(t *testing.T) *client.Client {
 
 	apiURL := os.Getenv("TECHNITIUM_API_URL")
 	apiToken := os.Getenv("TECHNITIUM_API_TOKEN")
-	skipVerify := parseEnvBool(os.Getenv("TECHNITIUM_SKIP_TLS_VERIFY"))
+	skipVerify := parseEnvBoolFlag(os.Getenv("TECHNITIUM_SKIP_TLS_VERIFY"))
 
 	c, err := client.NewClient(apiURL, apiToken, skipVerify)
 	if err != nil {
@@ -60,7 +60,7 @@ func testAccClient(t *testing.T) *client.Client {
 	return c
 }
 
-func parseEnvBool(v string) bool {
+func parseEnvBoolFlag(v string) bool {
 	switch strings.ToLower(strings.TrimSpace(v)) {
 	case "1", "true", "yes", "y", "on":
 		return true
@@ -79,7 +79,7 @@ func waitForZoneList() error {
 		apiClient, err := client.NewClient(
 			os.Getenv("TECHNITIUM_API_URL"),
 			os.Getenv("TECHNITIUM_API_TOKEN"),
-			parseEnvBool(os.Getenv("TECHNITIUM_SKIP_TLS_VERIFY")),
+			parseEnvBoolFlag(os.Getenv("TECHNITIUM_SKIP_TLS_VERIFY")),
 		)
 		if err != nil {
 			lastErr = err

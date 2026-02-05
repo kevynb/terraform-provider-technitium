@@ -131,6 +131,46 @@ func TestResolveProviderConfig_SkipTLSVerificationDefaultFalse(t *testing.T) {
 	}
 }
 
+func TestResolveProviderConfig_SkipTLSVerificationEnv(t *testing.T) {
+	confData := TechnitiumDNSProviderModel{
+		APIURL: types.StringValue("https://config.test"),
+		Token:  types.StringValue("config-token"),
+	}
+	config, diags := resolveProviderConfig(confData, "dev", func(key string) string {
+		if key == "TECHNITIUM_SKIP_TLS_VERIFY" {
+			return "true"
+		}
+		return ""
+	})
+
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %+v", diags)
+	}
+	if !config.skipCertificateVerification {
+		t.Fatalf("expected skipCertificateVerification from env to be true")
+	}
+}
+
+func TestResolveProviderConfig_SkipTLSVerificationEnvOverridesDefault(t *testing.T) {
+	confData := TechnitiumDNSProviderModel{
+		APIURL: types.StringValue("https://config.test"),
+		Token:  types.StringValue("config-token"),
+	}
+	config, diags := resolveProviderConfig(confData, "dev", func(key string) string {
+		if key == "TECHNITIUM_SKIP_TLS_VERIFY" {
+			return "0"
+		}
+		return ""
+	})
+
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %+v", diags)
+	}
+	if config.skipCertificateVerification {
+		t.Fatalf("expected skipCertificateVerification from env to be false")
+	}
+}
+
 func findDiagBySummary(diags diag.Diagnostics, summary string) (diag.Diagnostic, bool) {
 	for _, d := range diags {
 		if d.Summary() == summary {

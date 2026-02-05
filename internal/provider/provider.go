@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -144,6 +145,9 @@ func resolveProviderConfig(confData TechnitiumDNSProviderModel, version string, 
 	}
 
 	skipCertificateVerification := false
+	if envSkip := envLookup("TECHNITIUM_SKIP_TLS_VERIFY"); envSkip != "" {
+		skipCertificateVerification = parseEnvBool(envSkip)
+	}
 	if !confData.SkipCertificateVerification.IsUnknown() && !confData.SkipCertificateVerification.IsNull() {
 		skipCertificateVerification = confData.SkipCertificateVerification.ValueBool()
 	}
@@ -153,4 +157,15 @@ func resolveProviderConfig(confData TechnitiumDNSProviderModel, version string, 
 		token:                       token,
 		skipCertificateVerification: skipCertificateVerification,
 	}, diags
+}
+
+func parseEnvBool(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "y", "on":
+		return true
+	case "0", "false", "no", "n", "off":
+		return false
+	default:
+		return false
+	}
 }
