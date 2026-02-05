@@ -6,8 +6,6 @@ services:
     restart: unless-stopped
     ports:
       - "5380:5380/tcp"
-      - "53:53/tcp"
-      - "53:53/udp"
     environment:
       DNS_SERVER_DOMAIN: "tfacc.example.local"
       DNS_SERVER_ADMIN_PASSWORD: "changeme"

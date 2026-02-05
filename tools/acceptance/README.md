@@ -15,6 +15,9 @@ The UI will be available at:
 http://localhost:5380
 ```
 
+Note: the acceptance docker-compose only exposes port 5380; DNS port 53 is not
+published to avoid conflicts in CI.
+
 Default admin password (from docker-compose):
 
 ```
