@@ -559,19 +559,19 @@ func (r *RecordResource) ImportState(ctx context.Context, req resource.ImportSta
 	id := req.ID
 
 	// Parse the import ID: zone:name:TYPE:value
-	parts := strings.SplitN(id, IMPORT_SEP, 4)
-	if len(parts) < 4 {
+	parts, err := parseRecordImportID(id)
+	if err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid import ID",
-			fmt.Sprintf("Import ID must be in format 'zone:name:TYPE:value', got: %s", id),
+			err.Error(),
 		)
 		return
 	}
 
-	zone := parts[0]
-	name := parts[1]
-	recordType := parts[2]
-	value := parts[3]
+	zone := parts.zone
+	name := parts.name
+	recordType := parts.recordType
+	value := parts.value
 
 	// Construct full domain name
 	var domain string
@@ -593,81 +593,52 @@ func (r *RecordResource) ImportState(ctx context.Context, req resource.ImportSta
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("cname"), value)...)
 	case "MX":
 		// MX format: preference:exchange
-		mxParts := strings.SplitN(value, IMPORT_SEP, 2)
-		if len(mxParts) < 2 {
-			resp.Diagnostics.AddError(
-				"Invalid MX record format",
-				fmt.Sprintf("MX record value must be in format 'preference:exchange', got: %s", value),
-			)
+		mxData, err := parseMXImportValue(value)
+		if err != nil {
+			if diagErr, ok := err.(importValueError); ok {
+				resp.Diagnostics.AddError(diagErr.summary, diagErr.detail)
+			} else {
+				resp.Diagnostics.AddError("Invalid MX record value", err.Error())
+			}
 			return
 		}
-		if pref, err := strconv.ParseInt(mxParts[0], 10, 64); err == nil {
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("preference"), pref)...)
-		} else {
-			resp.Diagnostics.AddError(
-				"Invalid MX preference",
-				fmt.Sprintf("MX preference must be a valid integer, got: %s", mxParts[0]),
-			)
-			return
-		}
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("exchange"), mxParts[1])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("preference"), mxData.preference)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("exchange"), mxData.exchange)...)
 	case "NS":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name_server"), value)...)
 	case "PTR":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("ptr_name"), value)...)
 	case "SRV":
 		// SRV format: priority:weight:port:target
-		srvParts := strings.SplitN(value, IMPORT_SEP, 4)
-		if len(srvParts) < 4 {
-			resp.Diagnostics.AddError(
-				"Invalid SRV record format",
-				fmt.Sprintf("SRV record value must be in format 'priority:weight:port:target', got: %s", value),
-			)
+		srvData, err := parseSRVImportValue(value)
+		if err != nil {
+			if diagErr, ok := err.(importValueError); ok {
+				resp.Diagnostics.AddError(diagErr.summary, diagErr.detail)
+			} else {
+				resp.Diagnostics.AddError("Invalid SRV record value", err.Error())
+			}
 			return
 		}
-		if prio, err := strconv.ParseInt(srvParts[0], 10, 64); err == nil {
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("priority"), prio)...)
-		} else {
-			resp.Diagnostics.AddError(
-				"Invalid SRV priority",
-				fmt.Sprintf("SRV priority must be a valid integer, got: %s", srvParts[0]),
-			)
-			return
-		}
-		if weight, err := strconv.ParseInt(srvParts[1], 10, 64); err == nil {
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("weight"), weight)...)
-		} else {
-			resp.Diagnostics.AddError(
-				"Invalid SRV weight",
-				fmt.Sprintf("SRV weight must be a valid integer, got: %s", srvParts[1]),
-			)
-			return
-		}
-		if port, err := strconv.ParseInt(srvParts[2], 10, 64); err == nil {
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("port"), port)...)
-		} else {
-			resp.Diagnostics.AddError(
-				"Invalid SRV port",
-				fmt.Sprintf("SRV port must be a valid integer, got: %s", srvParts[2]),
-			)
-			return
-		}
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("target"), srvParts[3])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("priority"), srvData.priority)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("weight"), srvData.weight)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("port"), srvData.port)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("target"), srvData.target)...)
 	case "TXT":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("text"), value)...)
 	case "CAA":
 		// CAA format: flags:tag:value
-		caaParts := strings.SplitN(value, IMPORT_SEP, 3)
-		if len(caaParts) < 3 {
-			resp.Diagnostics.AddError(
-				"Invalid CAA record format",
-				fmt.Sprintf("CAA record value must be in format 'flags:tag:value', got: %s", value),
-			)
+		caaData, err := parseCAAImportValue(value)
+		if err != nil {
+			if diagErr, ok := err.(importValueError); ok {
+				resp.Diagnostics.AddError(diagErr.summary, diagErr.detail)
+			} else {
+				resp.Diagnostics.AddError("Invalid CAA record value", err.Error())
+			}
 			return
 		}
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("flags"), caaParts[0])...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("tag"), caaParts[1])...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("value"), caaParts[2])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("flags"), caaData.flags)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("tag"), caaData.tag)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("value"), caaData.value)...)
 	default:
 		// For other record types, try to set a generic value field if it exists
 		switch recordType {
@@ -687,6 +658,135 @@ func (r *RecordResource) ImportState(ctx context.Context, req resource.ImportSta
 
 	// Set a default TTL since it's required
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("ttl"), int64(3600))...)
+}
+
+type recordImportParts struct {
+	zone       string
+	name       string
+	recordType string
+	value      string
+}
+
+type importValueError struct {
+	summary string
+	detail  string
+}
+
+func (e importValueError) Error() string {
+	return e.detail
+}
+
+type mxImportValue struct {
+	preference int64
+	exchange   string
+}
+
+type srvImportValue struct {
+	priority int64
+	weight   int64
+	port     int64
+	target   string
+}
+
+type caaImportValue struct {
+	flags string
+	tag   string
+	value string
+}
+
+func parseRecordImportID(id string) (recordImportParts, error) {
+	parts := strings.SplitN(id, IMPORT_SEP, 4)
+	if len(parts) < 4 || !allNonEmpty(parts[0], parts[1], parts[2], parts[3]) {
+		return recordImportParts{}, fmt.Errorf("Import ID must be in format 'zone:name:TYPE:value', got: %s", id)
+	}
+	return recordImportParts{
+		zone:       parts[0],
+		name:       parts[1],
+		recordType: parts[2],
+		value:      parts[3],
+	}, nil
+}
+
+func parseMXImportValue(value string) (mxImportValue, error) {
+	parts := strings.SplitN(value, IMPORT_SEP, 2)
+	if len(parts) < 2 || !allNonEmpty(parts[0], parts[1]) {
+		return mxImportValue{}, importValueError{
+			summary: "Invalid MX record format",
+			detail:  fmt.Sprintf("MX record value must be in format 'preference:exchange', got: %s", value),
+		}
+	}
+	pref, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return mxImportValue{}, importValueError{
+			summary: "Invalid MX preference",
+			detail:  fmt.Sprintf("MX preference must be a valid integer, got: %s", parts[0]),
+		}
+	}
+	return mxImportValue{
+		preference: pref,
+		exchange:   parts[1],
+	}, nil
+}
+
+func parseSRVImportValue(value string) (srvImportValue, error) {
+	parts := strings.SplitN(value, IMPORT_SEP, 4)
+	if len(parts) < 4 || !allNonEmpty(parts[0], parts[1], parts[2], parts[3]) {
+		return srvImportValue{}, importValueError{
+			summary: "Invalid SRV record format",
+			detail:  fmt.Sprintf("SRV record value must be in format 'priority:weight:port:target', got: %s", value),
+		}
+	}
+	priority, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return srvImportValue{}, importValueError{
+			summary: "Invalid SRV priority",
+			detail:  fmt.Sprintf("SRV priority must be a valid integer, got: %s", parts[0]),
+		}
+	}
+	weight, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return srvImportValue{}, importValueError{
+			summary: "Invalid SRV weight",
+			detail:  fmt.Sprintf("SRV weight must be a valid integer, got: %s", parts[1]),
+		}
+	}
+	port, err := strconv.ParseInt(parts[2], 10, 64)
+	if err != nil {
+		return srvImportValue{}, importValueError{
+			summary: "Invalid SRV port",
+			detail:  fmt.Sprintf("SRV port must be a valid integer, got: %s", parts[2]),
+		}
+	}
+	return srvImportValue{
+		priority: priority,
+		weight:   weight,
+		port:     port,
+		target:   parts[3],
+	}, nil
+}
+
+func parseCAAImportValue(value string) (caaImportValue, error) {
+	parts := strings.SplitN(value, IMPORT_SEP, 3)
+	if len(parts) < 3 || !allNonEmpty(parts[0], parts[1], parts[2]) {
+		return caaImportValue{}, importValueError{
+			summary: "Invalid CAA record format",
+			detail:  fmt.Sprintf("CAA record value must be in format 'flags:tag:value', got: %s", value),
+		}
+	}
+	return caaImportValue{
+		flags: parts[0],
+		tag:   parts[1],
+		value: parts[2],
+	}, nil
+}
+
+func allNonEmpty(values ...string) bool {
+	for _, v := range values {
+		if strings.TrimSpace(v) == "" {
+			return false
+		}
+	}
+	return true
 }
 
 // add record fields to context; export TF_LOG=debug to view

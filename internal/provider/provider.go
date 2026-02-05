@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -68,46 +69,14 @@ func (p *TechnitiumDNSProvider) Configure(ctx context.Context, req provider.Conf
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &confData)...) // Extract config data
 
-	apiURL := os.Getenv("TECHNITIUM_API_URL")
-	if !confData.APIURL.IsUnknown() && !confData.APIURL.IsNull() {
-		apiURL = confData.APIURL.ValueString()
-	}
-	if apiURL == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("url"),
-			"Missing server URL Configuration",
-			"While configuring the provider, the technitium server url was not found in "+
-				"the TECHNITIUM_API_URL environment variable or provider "+
-				"configuration block url attribute.",
-		)
-		return
-	}
-
-	token := os.Getenv("TECHNITIUM_API_TOKEN")
-	if !confData.Token.IsUnknown() && !confData.Token.IsNull() {
-		token = confData.Token.ValueString()
-	}
-	if token == "" && p.version != "unittest" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("token"),
-			"Missing Token Configuration",
-			"While configuring the provider, the API token was not found in "+
-				"the TECHNITIUM_API_TOKEN environment variable or provider "+
-				"configuration block token attribute.",
-		)
-		return
-	}
-
-	skipCertificateVerification := false
-	if !confData.SkipCertificateVerification.IsUnknown() && !confData.SkipCertificateVerification.IsNull() {
-		skipCertificateVerification = confData.SkipCertificateVerification.ValueBool()
-	}
+	config, diags := resolveProviderConfig(confData, p.version, os.Getenv)
+	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	client, err := p.clientFactory(apiURL, token, skipCertificateVerification)
+	client, err := p.clientFactory(config.apiURL, config.token, config.skipCertificateVerification)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create API client", err.Error())
 		return
@@ -135,4 +104,53 @@ func New(version string, clientFactory APIClientFactory) func() provider.Provide
 			reqMutex:      sync.Mutex{},
 		}
 	}
+}
+
+type providerConfig struct {
+	apiURL                      string
+	token                       string
+	skipCertificateVerification bool
+}
+
+func resolveProviderConfig(confData TechnitiumDNSProviderModel, version string, envLookup func(string) string) (providerConfig, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	apiURL := envLookup("TECHNITIUM_API_URL")
+	if !confData.APIURL.IsUnknown() && !confData.APIURL.IsNull() {
+		apiURL = confData.APIURL.ValueString()
+	}
+	if apiURL == "" {
+		diags.AddAttributeError(
+			path.Root("url"),
+			"Missing server URL Configuration",
+			"While configuring the provider, the technitium server url was not found in "+
+				"the TECHNITIUM_API_URL environment variable or provider "+
+				"configuration block url attribute.",
+		)
+	}
+
+	token := envLookup("TECHNITIUM_API_TOKEN")
+	if !confData.Token.IsUnknown() && !confData.Token.IsNull() {
+		token = confData.Token.ValueString()
+	}
+	if token == "" && version != "unittest" {
+		diags.AddAttributeError(
+			path.Root("token"),
+			"Missing Token Configuration",
+			"While configuring the provider, the API token was not found in "+
+				"the TECHNITIUM_API_TOKEN environment variable or provider "+
+				"configuration block token attribute.",
+		)
+	}
+
+	skipCertificateVerification := false
+	if !confData.SkipCertificateVerification.IsUnknown() && !confData.SkipCertificateVerification.IsNull() {
+		skipCertificateVerification = confData.SkipCertificateVerification.ValueBool()
+	}
+
+	return providerConfig{
+		apiURL:                      apiURL,
+		token:                       token,
+		skipCertificateVerification: skipCertificateVerification,
+	}, diags
 }
