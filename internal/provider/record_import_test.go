@@ -35,12 +35,12 @@ func TestParseRecordImportID(t *testing.T) {
 		{
 			name:           "invalid",
 			id:             "bad",
-			wantErrContain: "Import ID must be in format",
+			wantErrContain: "import ID must be in format",
 		},
 		{
 			name:           "invalid missing value",
 			id:             "example.com:@:A:",
-			wantErrContain: "Import ID must be in format",
+			wantErrContain: "import ID must be in format",
 		},
 	}
 

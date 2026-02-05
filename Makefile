@@ -1,5 +1,5 @@
 default: build
-.PHONY: build test testacc docs local acc-up acc-down acc-test acc
+.PHONY: build test testacc docs local acc-up acc-down acc-test acc lint lint-fix
 
 PROJ := technitium
 ORG := kevynb
@@ -28,6 +28,12 @@ test:
 
 testacc:
 	TF_ACC=1 go test -v -timeout 2m ./...
+
+lint:
+	golangci-lint run ./...
+
+lint-fix:
+	golangci-lint run --fix ./...
 
 acc-up:
 	docker compose -f tools/acceptance/docker-compose.yml up -d

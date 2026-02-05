@@ -697,7 +697,7 @@ type caaImportValue struct {
 func parseRecordImportID(id string) (recordImportParts, error) {
 	parts := strings.SplitN(id, IMPORT_SEP, 4)
 	if len(parts) < 4 || !allNonEmpty(parts[0], parts[1], parts[2], parts[3]) {
-		return recordImportParts{}, fmt.Errorf("Import ID must be in format 'zone:name:TYPE:value', got: %s", id)
+		return recordImportParts{}, fmt.Errorf("import ID must be in format 'zone:name:TYPE:value', got: %s", id)
 	}
 	return recordImportParts{
 		zone:       parts[0],

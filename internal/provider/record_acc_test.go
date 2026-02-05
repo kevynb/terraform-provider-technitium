@@ -2,9 +2,9 @@ package provider
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -38,10 +38,10 @@ func TestAccRecordResource_basic(t *testing.T) {
 			},
 			{
 				// Import existing record into state and verify.
-				ResourceName:      "technitium_record.test",
-				ImportState:       true,
-				ImportStateId:     zoneName + ":" + recordName + ":A:5.6.7.8",
-				ImportStateVerify: true,
+				ResourceName:                         "technitium_record.test",
+				ImportState:                          true,
+				ImportStateId:                        zoneName + ":" + recordName + ":A:5.6.7.8",
+				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "domain",
 			},
 			{
@@ -100,10 +100,10 @@ func TestAccRecordResource_txt(t *testing.T) {
 			},
 			{
 				// Import existing TXT record into state and verify.
-				ResourceName:      "technitium_record.txt",
-				ImportState:       true,
-				ImportStateId:     zoneName + ":" + recordName + ":TXT:updated text",
-				ImportStateVerify: true,
+				ResourceName:                         "technitium_record.txt",
+				ImportState:                          true,
+				ImportStateId:                        zoneName + ":" + recordName + ":TXT:updated text",
+				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "domain",
 			},
 			{
@@ -167,10 +167,10 @@ func TestAccRecordResource_cname(t *testing.T) {
 			},
 			{
 				// Import existing CNAME record into state and verify.
-				ResourceName:      "technitium_record.cname",
-				ImportState:       true,
-				ImportStateId:     zoneName + ":" + recordName + ":CNAME:target2.example.com",
-				ImportStateVerify: true,
+				ResourceName:                         "technitium_record.cname",
+				ImportState:                          true,
+				ImportStateId:                        zoneName + ":" + recordName + ":CNAME:target2.example.com",
+				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "domain",
 			},
 			{

@@ -10,13 +10,13 @@ import (
 
 func TestResolveProviderConfig_Validation(t *testing.T) {
 	cases := []struct {
-		name               string
-		confData           TechnitiumDNSProviderModel
-		version            string
-		env                map[string]string
-		wantErrSummaries   []string
-		wantPathBySummary  map[string]path.Path
-		wantNoDiagnostics  bool
+		name              string
+		confData          TechnitiumDNSProviderModel
+		version           string
+		env               map[string]string
+		wantErrSummaries  []string
+		wantPathBySummary map[string]path.Path
+		wantNoDiagnostics bool
 	}{
 		{
 			name: "missing url and token",

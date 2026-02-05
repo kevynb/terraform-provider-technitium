@@ -77,9 +77,9 @@ func TestTFZone2ModelMapping(t *testing.T) {
 
 func TestModelZone2TFMapping(t *testing.T) {
 	cases := []struct {
-		name   string
-		input  model.DNSZone
-		want   wantTFZone
+		name  string
+		input model.DNSZone
+		want  wantTFZone
 	}{
 		{
 			name: "all optional fields",
@@ -152,9 +152,9 @@ func TestModelZone2TFMapping(t *testing.T) {
 
 func TestModelZone2TFDataSourceMapping(t *testing.T) {
 	cases := []struct {
-		name   string
-		input  model.DNSZone
-		want   wantTFZoneDataSource
+		name  string
+		input model.DNSZone
+		want  wantTFZoneDataSource
 	}{
 		{
 			name: "full mapping",

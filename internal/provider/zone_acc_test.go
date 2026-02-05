@@ -26,10 +26,10 @@ func TestAccZoneResource_basic(t *testing.T) {
 			},
 			{
 				// Import existing zone into state and verify.
-				ResourceName:      "technitium_zone.test",
-				ImportState:       true,
-				ImportStateId:     zoneName,
-				ImportStateVerify: true,
+				ResourceName:                         "technitium_zone.test",
+				ImportState:                          true,
+				ImportStateId:                        zoneName,
+				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "name",
 			},
 			{
@@ -86,10 +86,10 @@ func TestAccZoneResource_forwarder(t *testing.T) {
 			},
 			{
 				// Import existing forwarder zone into state and verify.
-				ResourceName:      "technitium_zone.forwarder",
-				ImportState:       true,
-				ImportStateId:     zoneName,
-				ImportStateVerify: true,
+				ResourceName:                         "technitium_zone.forwarder",
+				ImportState:                          true,
+				ImportStateId:                        zoneName,
+				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "name",
 			},
 			{
