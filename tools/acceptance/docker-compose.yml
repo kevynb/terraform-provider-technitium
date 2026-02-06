@@ -1,6 +1,6 @@
 services:
   technitium:
-    image: technitium/dns-server:latest
+    image: ${TECHNITIUM_DNS_IMAGE:-technitium/dns-server:14.3}
     platform: linux/amd64
     container_name: technitium-dns
     restart: unless-stopped
