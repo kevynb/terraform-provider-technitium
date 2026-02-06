@@ -20,7 +20,7 @@ env:
   TECHNITIUM_API_URL: http://localhost:5380
   TECHNITIUM_ADMIN_USER: admin
   TECHNITIUM_ADMIN_PASSWORD: changeme
-  TECHNITIUM_DNS_IMAGE: technitium/dns-server:14.3
+  TECHNITIUM_DNS_IMAGE: technitium/dns-server:latest
 
 jobs:
   # Ensure project builds before running testing matrix
