@@ -1,0 +1,16 @@
+services:
+  technitium:
+    image: ${TECHNITIUM_DNS_IMAGE:-technitium/dns-server:latest}
+    platform: linux/amd64
+    container_name: technitium-dns
+    restart: unless-stopped
+    ports:
+      - "5380:5380/tcp"
+    environment:
+      DNS_SERVER_DOMAIN: "tfacc.example.local"
+      DNS_SERVER_ADMIN_PASSWORD: "changeme"
+    volumes:
+      - technitium-data:/etc/dns
+
+volumes:
+  technitium-data:

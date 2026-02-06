@@ -22,3 +22,4 @@ dist/
 **/*.tar.gz*
 *.out
 .terraform.lock.hcl
+/tools/acceptance/token.env
