@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -38,12 +39,26 @@ type Client struct {
 }
 
 func NewClient(apiURL string, token string, skipCertificateVerification bool) (*Client, error) {
+	tlsConfig := &tls.Config{InsecureSkipVerify: skipCertificateVerification}
+
+	// Optional TLS key logging for debugging - honors SSLKEYLOGFILE (same
+	// convention curl/OpenSSL use) so a real request/response can be decrypted
+	// from a packet capture, e.g. to diagnose response-body-handling issues
+	// that don't reproduce outside the actual provider process.
+	if keyLogFile := os.Getenv("SSLKEYLOGFILE"); keyLogFile != "" {
+		f, err := os.OpenFile(keyLogFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot open SSLKEYLOGFILE")
+		}
+		tlsConfig.KeyLogWriter = f
+	}
+
 	httpTransport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: HTTP_TIMEOUT * time.Second}).DialContext,
 		TLSHandshakeTimeout:   HTTP_TIMEOUT * time.Second,
 		ResponseHeaderTimeout: HTTP_TIMEOUT * time.Second,
-		TLSClientConfig:       &tls.Config{InsecureSkipVerify: skipCertificateVerification},
+		TLSClientConfig:       tlsConfig,
 	}
 
 	httpClient := http.Client{
