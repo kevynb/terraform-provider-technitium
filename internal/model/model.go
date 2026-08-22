@@ -234,6 +234,149 @@ func (r DNSRecord) SameKey(r1 DNSRecord) bool {
 	}
 }
 
+// DNSSettings represents the Technitium DNS server settings
+type DNSSettings struct {
+	// General
+	DnsServerDomain              string   `json:"dnsServerDomain"`
+	DnsServerLocalEndPoints      []string `json:"dnsServerLocalEndPoints"`
+	DnsServerIPv4SourceAddresses []string `json:"dnsServerIPv4SourceAddresses"`
+	DnsServerIPv6SourceAddresses []string `json:"dnsServerIPv6SourceAddresses"`
+	DefaultRecordTtl             int64    `json:"defaultRecordTtl"`
+	DefaultNsRecordTtl           int64    `json:"defaultNsRecordTtl"`
+	DefaultSoaRecordTtl          int64    `json:"defaultSoaRecordTtl"`
+	DefaultResponsiblePerson     string   `json:"defaultResponsiblePerson"`
+	UseSoaSerialDateScheme       bool     `json:"useSoaSerialDateScheme"`
+	MinSoaRefresh                int64    `json:"minSoaRefresh"`
+	MinSoaRetry                  int64    `json:"minSoaRetry"`
+	ZoneTransferAllowedNetworks  []string `json:"zoneTransferAllowedNetworks"`
+	NotifyAllowedNetworks        []string `json:"notifyAllowedNetworks"`
+	DnsAppsEnableAutomaticUpdate bool     `json:"dnsAppsEnableAutomaticUpdate"`
+
+	// Network
+	PreferIPv6              bool    `json:"preferIPv6"`
+	EnableUdpSocketPool     bool    `json:"enableUdpSocketPool"`
+	SocketPoolExcludedPorts []int64 `json:"socketPoolExcludedPorts"`
+	UdpPayloadSize          int64   `json:"udpPayloadSize"`
+
+	// DNSSEC
+	DnssecValidation                 bool   `json:"dnssecValidation"`
+	EDnsClientSubnet                 bool   `json:"eDnsClientSubnet"`
+	EDnsClientSubnetIPv4PrefixLength int64  `json:"eDnsClientSubnetIPv4PrefixLength"`
+	EDnsClientSubnetIPv6PrefixLength int64  `json:"eDnsClientSubnetIPv6PrefixLength"`
+	EDnsClientSubnetIpv4Override     string `json:"eDnsClientSubnetIpv4Override"`
+	EDnsClientSubnetIpv6Override     string `json:"eDnsClientSubnetIpv6Override"`
+
+	// QPM Limits
+	QpmLimitSampleMinutes           int64    `json:"qpmLimitSampleMinutes"`
+	QpmLimitUdpTruncationPercentage int64    `json:"qpmLimitUdpTruncationPercentage"`
+	QpmLimitBypassList              []string `json:"qpmLimitBypassList"`
+
+	// Timeouts
+	ClientTimeout                   int64 `json:"clientTimeout"`
+	TcpSendTimeout                  int64 `json:"tcpSendTimeout"`
+	TcpReceiveTimeout               int64 `json:"tcpReceiveTimeout"`
+	QuicIdleTimeout                 int64 `json:"quicIdleTimeout"`
+	QuicMaxInboundStreams           int64 `json:"quicMaxInboundStreams"`
+	ListenBacklog                   int64 `json:"listenBacklog"`
+	MaxConcurrentResolutionsPerCore int64 `json:"maxConcurrentResolutionsPerCore"`
+
+	// Web Service
+	WebServiceLocalAddresses              []string `json:"webServiceLocalAddresses"`
+	WebServiceHttpPort                    int64    `json:"webServiceHttpPort"`
+	WebServiceEnableTls                   bool     `json:"webServiceEnableTls"`
+	WebServiceEnableHttp3                 bool     `json:"webServiceEnableHttp3"`
+	WebServiceHttpToTlsRedirect           bool     `json:"webServiceHttpToTlsRedirect"`
+	WebServiceUseSelfSignedTlsCertificate bool     `json:"webServiceUseSelfSignedTlsCertificate"`
+	WebServiceTlsPort                     int64    `json:"webServiceTlsPort"`
+	WebServiceTlsCertificatePath          string   `json:"webServiceTlsCertificatePath"`
+	WebServiceTlsCertificatePassword      string   `json:"webServiceTlsCertificatePassword"`
+	WebServiceRealIpHeader                string   `json:"webServiceRealIpHeader"`
+
+	// DNS-over-X protocols
+	EnableDnsOverUdpProxy bool  `json:"enableDnsOverUdpProxy"`
+	EnableDnsOverTcpProxy bool  `json:"enableDnsOverTcpProxy"`
+	EnableDnsOverHttp     bool  `json:"enableDnsOverHttp"`
+	EnableDnsOverTls      bool  `json:"enableDnsOverTls"`
+	EnableDnsOverHttps    bool  `json:"enableDnsOverHttps"`
+	EnableDnsOverHttp3    bool  `json:"enableDnsOverHttp3"`
+	EnableDnsOverQuic     bool  `json:"enableDnsOverQuic"`
+	DnsOverUdpProxyPort   int64 `json:"dnsOverUdpProxyPort"`
+	DnsOverTcpProxyPort   int64 `json:"dnsOverTcpProxyPort"`
+	DnsOverHttpPort       int64 `json:"dnsOverHttpPort"`
+	DnsOverTlsPort        int64 `json:"dnsOverTlsPort"`
+	DnsOverHttpsPort      int64 `json:"dnsOverHttpsPort"`
+	DnsOverQuicPort       int64 `json:"dnsOverQuicPort"`
+
+	// Reverse Proxy & TLS for DNS protocols
+	ReverseProxyNetworkACL    []string `json:"reverseProxyNetworkACL"`
+	DnsTlsCertificatePath     string   `json:"dnsTlsCertificatePath"`
+	DnsTlsCertificatePassword string   `json:"dnsTlsCertificatePassword"`
+	DnsOverHttpRealIpHeader   string   `json:"dnsOverHttpRealIpHeader"`
+
+	// Recursion
+	Recursion             string   `json:"recursion"`
+	RecursionNetworkACL   []string `json:"recursionNetworkACL"`
+	RandomizeName         bool     `json:"randomizeName"`
+	QnameMinimization     bool     `json:"qnameMinimization"`
+	ResolverRetries       int64    `json:"resolverRetries"`
+	ResolverTimeout       int64    `json:"resolverTimeout"`
+	ResolverConcurrency   int64    `json:"resolverConcurrency"`
+	ResolverMaxStackCount int64    `json:"resolverMaxStackCount"`
+
+	// Cache
+	SaveCache                                 bool  `json:"saveCache"`
+	ServeStale                                bool  `json:"serveStale"`
+	ServeStaleTtl                             int64 `json:"serveStaleTtl"`
+	ServeStaleAnswerTtl                       int64 `json:"serveStaleAnswerTtl"`
+	ServeStaleResetTtl                        int64 `json:"serveStaleResetTtl"`
+	ServeStaleMaxWaitTime                     int64 `json:"serveStaleMaxWaitTime"`
+	CacheMaximumEntries                       int64 `json:"cacheMaximumEntries"`
+	CacheMinimumRecordTtl                     int64 `json:"cacheMinimumRecordTtl"`
+	CacheMaximumRecordTtl                     int64 `json:"cacheMaximumRecordTtl"`
+	CacheNegativeRecordTtl                    int64 `json:"cacheNegativeRecordTtl"`
+	CacheFailureRecordTtl                     int64 `json:"cacheFailureRecordTtl"`
+	CachePrefetchEligibility                  int64 `json:"cachePrefetchEligibility"`
+	CachePrefetchTrigger                      int64 `json:"cachePrefetchTrigger"`
+	CachePrefetchSampleIntervalInMinutes      int64 `json:"cachePrefetchSampleIntervalInMinutes"`
+	CachePrefetchSampleEligibilityHitsPerHour int64 `json:"cachePrefetchSampleEligibilityHitsPerHour"`
+
+	// Blocking
+	EnableBlocking               bool     `json:"enableBlocking"`
+	AllowTxtBlockingReport       bool     `json:"allowTxtBlockingReport"`
+	BlockingBypassList           []string `json:"blockingBypassList"`
+	BlockingType                 string   `json:"blockingType"`
+	BlockingAnswerTtl            int64    `json:"blockingAnswerTtl"`
+	CustomBlockingAddresses      []string `json:"customBlockingAddresses"`
+	BlockListUrls                []string `json:"blockListUrls"`
+	BlockListUpdateIntervalHours int64    `json:"blockListUpdateIntervalHours"`
+
+	// Proxy
+	ProxyType     string `json:"proxyType"`
+	ProxyAddress  string `json:"proxyAddress"`
+	ProxyPort     int64  `json:"proxyPort"`
+	ProxyUsername string `json:"proxyUsername"`
+	ProxyPassword string `json:"proxyPassword"`
+	ProxyBypass   string `json:"proxyBypass"`
+
+	// Forwarders
+	Forwarders           []string `json:"forwarders"`
+	ForwarderProtocol    string   `json:"forwarderProtocol"`
+	ConcurrentForwarding bool     `json:"concurrentForwarding"`
+	ForwarderRetries     int64    `json:"forwarderRetries"`
+	ForwarderTimeout     int64    `json:"forwarderTimeout"`
+	ForwarderConcurrency int64    `json:"forwarderConcurrency"`
+
+	// Logging
+	LoggingType         string `json:"loggingType"`
+	IgnoreResolverLogs  bool   `json:"ignoreResolverLogs"`
+	LogQueries          bool   `json:"logQueries"`
+	UseLocalTime        bool   `json:"useLocalTime"`
+	LogFolder           string `json:"logFolder"`
+	MaxLogFileDays      int64  `json:"maxLogFileDays"`
+	EnableInMemoryStats bool   `json:"enableInMemoryStats"`
+	MaxStatFileDays     int64  `json:"maxStatFileDays"`
+}
+
 // client API interface
 type DNSApiClient interface {
 	GetRecords(ctx context.Context, domain DNSRecordName) ([]DNSRecord, error)
@@ -244,4 +387,6 @@ type DNSApiClient interface {
 	ListZones(ctx context.Context) ([]DNSZone, error)
 	CreateZone(ctx context.Context, zone DNSZone) error
 	DeleteZone(ctx context.Context, zoneName string) error
+	GetSettings(ctx context.Context) (*DNSSettings, error)
+	SetSettings(ctx context.Context, settings *DNSSettings) (*DNSSettings, error)
 }

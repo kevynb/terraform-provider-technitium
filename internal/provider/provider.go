@@ -90,11 +90,15 @@ func (p *TechnitiumDNSProvider) Resources(ctx context.Context) []func() resource
 	return []func() resource.Resource{
 		RecordResourceFactory(&p.reqMutex),
 		ZoneResourceFactory(&p.reqMutex),
+		SettingsResourceFactory(&p.reqMutex),
 	}
 }
 
 func (p *TechnitiumDNSProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		ZoneDataSourceFactory(&p.reqMutex),
+		SettingsDataSourceFactory(&p.reqMutex),
+	}
 }
 
 func New(version string, clientFactory APIClientFactory) func() provider.Provider {

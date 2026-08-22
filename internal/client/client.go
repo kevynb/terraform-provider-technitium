@@ -20,6 +20,7 @@ const (
 	HTTP_TIMEOUT               = 10
 	DOMAINS_URL                = "/api/zones/records"
 	ZONES_URL                  = "/api/zones"
+	SETTINGS_URL               = "/api/settings"
 	TERRAFORM_PROVIDER_COMMENT = "Managed by terraform"
 )
 
@@ -1231,4 +1232,261 @@ func mapAPIDNSRecordToDNSRecord(apiRecord apiDNSRecordResponseItem, zone string)
 		ClassPath:  apiRecord.RData.ClassPath,
 		RecordData: apiRecord.RData.RecordData,
 	}
+}
+
+// GetSettings retrieves the DNS server settings.
+func (c Client) GetSettings(ctx context.Context) (*model.DNSSettings, error) {
+	params := url.Values{}
+	params.Set("token", c.token)
+
+	requestURL := fmt.Sprintf("%s%s/get?%s", c.apiURL, SETTINGS_URL, params.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "HTTP request error")
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	var apiResp struct {
+		Status       string            `json:"status"`
+		ErrorMessage string            `json:"errorMessage,omitempty"`
+		Response     model.DNSSettings `json:"response"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, errors.Wrap(err, "cannot decode JSON response")
+	}
+
+	if apiResp.Status != StatusOK {
+		return nil, fmt.Errorf("API error: %s", apiResp.ErrorMessage)
+	}
+
+	return &apiResp.Response, nil
+}
+
+// SetSettings updates the DNS server settings.
+func (c Client) SetSettings(ctx context.Context, settings *model.DNSSettings) (*model.DNSSettings, error) {
+	formData := url.Values{}
+	formData.Set("token", c.token)
+
+	// General
+	formData.Set("dnsServerDomain", settings.DnsServerDomain)
+	formData.Set("dnsServerLocalEndPoints", strings.Join(settings.DnsServerLocalEndPoints, ","))
+	formData.Set("dnsServerIPv4SourceAddresses", strings.Join(settings.DnsServerIPv4SourceAddresses, ","))
+	formData.Set("dnsServerIPv6SourceAddresses", strings.Join(settings.DnsServerIPv6SourceAddresses, ","))
+	formData.Set("defaultRecordTtl", fmt.Sprintf("%d", settings.DefaultRecordTtl))
+	formData.Set("defaultNsRecordTtl", fmt.Sprintf("%d", settings.DefaultNsRecordTtl))
+	formData.Set("defaultSoaRecordTtl", fmt.Sprintf("%d", settings.DefaultSoaRecordTtl))
+	formData.Set("defaultResponsiblePerson", settings.DefaultResponsiblePerson)
+	formData.Set("useSoaSerialDateScheme", fmt.Sprintf("%t", settings.UseSoaSerialDateScheme))
+	formData.Set("minSoaRefresh", fmt.Sprintf("%d", settings.MinSoaRefresh))
+	formData.Set("minSoaRetry", fmt.Sprintf("%d", settings.MinSoaRetry))
+	if len(settings.ZoneTransferAllowedNetworks) > 0 {
+		formData.Set("zoneTransferAllowedNetworks", strings.Join(settings.ZoneTransferAllowedNetworks, ","))
+	} else {
+		formData.Set("zoneTransferAllowedNetworks", "false")
+	}
+	if len(settings.NotifyAllowedNetworks) > 0 {
+		formData.Set("notifyAllowedNetworks", strings.Join(settings.NotifyAllowedNetworks, ","))
+	} else {
+		formData.Set("notifyAllowedNetworks", "false")
+	}
+	formData.Set("dnsAppsEnableAutomaticUpdate", fmt.Sprintf("%t", settings.DnsAppsEnableAutomaticUpdate))
+
+	// Network
+	formData.Set("preferIPv6", fmt.Sprintf("%t", settings.PreferIPv6))
+	formData.Set("enableUdpSocketPool", fmt.Sprintf("%t", settings.EnableUdpSocketPool))
+	formData.Set("udpPayloadSize", fmt.Sprintf("%d", settings.UdpPayloadSize))
+
+	// DNSSEC
+	formData.Set("dnssecValidation", fmt.Sprintf("%t", settings.DnssecValidation))
+	formData.Set("eDnsClientSubnet", fmt.Sprintf("%t", settings.EDnsClientSubnet))
+	formData.Set("eDnsClientSubnetIPv4PrefixLength", fmt.Sprintf("%d", settings.EDnsClientSubnetIPv4PrefixLength))
+	formData.Set("eDnsClientSubnetIPv6PrefixLength", fmt.Sprintf("%d", settings.EDnsClientSubnetIPv6PrefixLength))
+	formData.Set("eDnsClientSubnetIpv4Override", settings.EDnsClientSubnetIpv4Override)
+	formData.Set("eDnsClientSubnetIpv6Override", settings.EDnsClientSubnetIpv6Override)
+
+	// QPM Limits
+	formData.Set("qpmLimitSampleMinutes", fmt.Sprintf("%d", settings.QpmLimitSampleMinutes))
+	formData.Set("qpmLimitUdpTruncationPercentage", fmt.Sprintf("%d", settings.QpmLimitUdpTruncationPercentage))
+	if len(settings.QpmLimitBypassList) > 0 {
+		formData.Set("qpmLimitBypassList", strings.Join(settings.QpmLimitBypassList, ","))
+	} else {
+		formData.Set("qpmLimitBypassList", "false")
+	}
+
+	// Timeouts
+	formData.Set("clientTimeout", fmt.Sprintf("%d", settings.ClientTimeout))
+	formData.Set("tcpSendTimeout", fmt.Sprintf("%d", settings.TcpSendTimeout))
+	formData.Set("tcpReceiveTimeout", fmt.Sprintf("%d", settings.TcpReceiveTimeout))
+	formData.Set("quicIdleTimeout", fmt.Sprintf("%d", settings.QuicIdleTimeout))
+	formData.Set("quicMaxInboundStreams", fmt.Sprintf("%d", settings.QuicMaxInboundStreams))
+	formData.Set("listenBacklog", fmt.Sprintf("%d", settings.ListenBacklog))
+	formData.Set("maxConcurrentResolutionsPerCore", fmt.Sprintf("%d", settings.MaxConcurrentResolutionsPerCore))
+
+	// Web Service
+	formData.Set("webServiceLocalAddresses", strings.Join(settings.WebServiceLocalAddresses, ","))
+	formData.Set("webServiceHttpPort", fmt.Sprintf("%d", settings.WebServiceHttpPort))
+	formData.Set("webServiceEnableTls", fmt.Sprintf("%t", settings.WebServiceEnableTls))
+	formData.Set("webServiceEnableHttp3", fmt.Sprintf("%t", settings.WebServiceEnableHttp3))
+	formData.Set("webServiceHttpToTlsRedirect", fmt.Sprintf("%t", settings.WebServiceHttpToTlsRedirect))
+	formData.Set("webServiceUseSelfSignedTlsCertificate", fmt.Sprintf("%t", settings.WebServiceUseSelfSignedTlsCertificate))
+	formData.Set("webServiceTlsPort", fmt.Sprintf("%d", settings.WebServiceTlsPort))
+	formData.Set("webServiceTlsCertificatePath", settings.WebServiceTlsCertificatePath)
+	formData.Set("webServiceTlsCertificatePassword", settings.WebServiceTlsCertificatePassword)
+	formData.Set("webServiceRealIpHeader", settings.WebServiceRealIpHeader)
+
+	// DNS-over-X protocols
+	formData.Set("enableDnsOverUdpProxy", fmt.Sprintf("%t", settings.EnableDnsOverUdpProxy))
+	formData.Set("enableDnsOverTcpProxy", fmt.Sprintf("%t", settings.EnableDnsOverTcpProxy))
+	formData.Set("enableDnsOverHttp", fmt.Sprintf("%t", settings.EnableDnsOverHttp))
+	formData.Set("enableDnsOverTls", fmt.Sprintf("%t", settings.EnableDnsOverTls))
+	formData.Set("enableDnsOverHttps", fmt.Sprintf("%t", settings.EnableDnsOverHttps))
+	formData.Set("enableDnsOverHttp3", fmt.Sprintf("%t", settings.EnableDnsOverHttp3))
+	formData.Set("enableDnsOverQuic", fmt.Sprintf("%t", settings.EnableDnsOverQuic))
+	formData.Set("dnsOverUdpProxyPort", fmt.Sprintf("%d", settings.DnsOverUdpProxyPort))
+	formData.Set("dnsOverTcpProxyPort", fmt.Sprintf("%d", settings.DnsOverTcpProxyPort))
+	formData.Set("dnsOverHttpPort", fmt.Sprintf("%d", settings.DnsOverHttpPort))
+	formData.Set("dnsOverTlsPort", fmt.Sprintf("%d", settings.DnsOverTlsPort))
+	formData.Set("dnsOverHttpsPort", fmt.Sprintf("%d", settings.DnsOverHttpsPort))
+	formData.Set("dnsOverQuicPort", fmt.Sprintf("%d", settings.DnsOverQuicPort))
+
+	// Reverse Proxy & TLS
+	if len(settings.ReverseProxyNetworkACL) > 0 {
+		formData.Set("reverseProxyNetworkACL", strings.Join(settings.ReverseProxyNetworkACL, ","))
+	} else {
+		formData.Set("reverseProxyNetworkACL", "false")
+	}
+	formData.Set("dnsTlsCertificatePath", settings.DnsTlsCertificatePath)
+	formData.Set("dnsTlsCertificatePassword", settings.DnsTlsCertificatePassword)
+	formData.Set("dnsOverHttpRealIpHeader", settings.DnsOverHttpRealIpHeader)
+
+	// Recursion
+	formData.Set("recursion", settings.Recursion)
+	if len(settings.RecursionNetworkACL) > 0 {
+		formData.Set("recursionNetworkACL", strings.Join(settings.RecursionNetworkACL, ","))
+	} else {
+		formData.Set("recursionNetworkACL", "false")
+	}
+	formData.Set("randomizeName", fmt.Sprintf("%t", settings.RandomizeName))
+	formData.Set("qnameMinimization", fmt.Sprintf("%t", settings.QnameMinimization))
+	formData.Set("resolverRetries", fmt.Sprintf("%d", settings.ResolverRetries))
+	formData.Set("resolverTimeout", fmt.Sprintf("%d", settings.ResolverTimeout))
+	formData.Set("resolverConcurrency", fmt.Sprintf("%d", settings.ResolverConcurrency))
+	formData.Set("resolverMaxStackCount", fmt.Sprintf("%d", settings.ResolverMaxStackCount))
+
+	// Cache
+	formData.Set("saveCache", fmt.Sprintf("%t", settings.SaveCache))
+	formData.Set("serveStale", fmt.Sprintf("%t", settings.ServeStale))
+	formData.Set("serveStaleTtl", fmt.Sprintf("%d", settings.ServeStaleTtl))
+	formData.Set("serveStaleAnswerTtl", fmt.Sprintf("%d", settings.ServeStaleAnswerTtl))
+	formData.Set("serveStaleResetTtl", fmt.Sprintf("%d", settings.ServeStaleResetTtl))
+	formData.Set("serveStaleMaxWaitTime", fmt.Sprintf("%d", settings.ServeStaleMaxWaitTime))
+	formData.Set("cacheMaximumEntries", fmt.Sprintf("%d", settings.CacheMaximumEntries))
+	formData.Set("cacheMinimumRecordTtl", fmt.Sprintf("%d", settings.CacheMinimumRecordTtl))
+	formData.Set("cacheMaximumRecordTtl", fmt.Sprintf("%d", settings.CacheMaximumRecordTtl))
+	formData.Set("cacheNegativeRecordTtl", fmt.Sprintf("%d", settings.CacheNegativeRecordTtl))
+	formData.Set("cacheFailureRecordTtl", fmt.Sprintf("%d", settings.CacheFailureRecordTtl))
+	formData.Set("cachePrefetchEligibility", fmt.Sprintf("%d", settings.CachePrefetchEligibility))
+	formData.Set("cachePrefetchTrigger", fmt.Sprintf("%d", settings.CachePrefetchTrigger))
+	formData.Set("cachePrefetchSampleIntervalInMinutes", fmt.Sprintf("%d", settings.CachePrefetchSampleIntervalInMinutes))
+	formData.Set("cachePrefetchSampleEligibilityHitsPerHour", fmt.Sprintf("%d", settings.CachePrefetchSampleEligibilityHitsPerHour))
+
+	// Blocking
+	formData.Set("enableBlocking", fmt.Sprintf("%t", settings.EnableBlocking))
+	formData.Set("allowTxtBlockingReport", fmt.Sprintf("%t", settings.AllowTxtBlockingReport))
+	if len(settings.BlockingBypassList) > 0 {
+		formData.Set("blockingBypassList", strings.Join(settings.BlockingBypassList, ","))
+	} else {
+		formData.Set("blockingBypassList", "false")
+	}
+	formData.Set("blockingType", settings.BlockingType)
+	formData.Set("blockingAnswerTtl", fmt.Sprintf("%d", settings.BlockingAnswerTtl))
+	if len(settings.CustomBlockingAddresses) > 0 {
+		formData.Set("customBlockingAddresses", strings.Join(settings.CustomBlockingAddresses, ","))
+	} else {
+		formData.Set("customBlockingAddresses", "false")
+	}
+	if len(settings.BlockListUrls) > 0 {
+		formData.Set("blockListUrls", strings.Join(settings.BlockListUrls, ","))
+	} else {
+		formData.Set("blockListUrls", "false")
+	}
+	formData.Set("blockListUpdateIntervalHours", fmt.Sprintf("%d", settings.BlockListUpdateIntervalHours))
+
+	// Proxy
+	if settings.ProxyType != "" {
+		formData.Set("proxyType", settings.ProxyType)
+	} else {
+		formData.Set("proxyType", "none")
+	}
+	formData.Set("proxyAddress", settings.ProxyAddress)
+	if settings.ProxyPort > 0 {
+		formData.Set("proxyPort", fmt.Sprintf("%d", settings.ProxyPort))
+	}
+	formData.Set("proxyUsername", settings.ProxyUsername)
+	formData.Set("proxyPassword", settings.ProxyPassword)
+	formData.Set("proxyBypass", settings.ProxyBypass)
+
+	// Forwarders
+	if len(settings.Forwarders) > 0 {
+		formData.Set("forwarders", strings.Join(settings.Forwarders, ","))
+	} else {
+		formData.Set("forwarders", "false")
+	}
+	formData.Set("forwarderProtocol", settings.ForwarderProtocol)
+	formData.Set("concurrentForwarding", fmt.Sprintf("%t", settings.ConcurrentForwarding))
+	formData.Set("forwarderRetries", fmt.Sprintf("%d", settings.ForwarderRetries))
+	formData.Set("forwarderTimeout", fmt.Sprintf("%d", settings.ForwarderTimeout))
+	formData.Set("forwarderConcurrency", fmt.Sprintf("%d", settings.ForwarderConcurrency))
+
+	// Logging
+	formData.Set("loggingType", settings.LoggingType)
+	formData.Set("ignoreResolverLogs", fmt.Sprintf("%t", settings.IgnoreResolverLogs))
+	formData.Set("logQueries", fmt.Sprintf("%t", settings.LogQueries))
+	formData.Set("useLocalTime", fmt.Sprintf("%t", settings.UseLocalTime))
+	formData.Set("logFolder", settings.LogFolder)
+	formData.Set("maxLogFileDays", fmt.Sprintf("%d", settings.MaxLogFileDays))
+	formData.Set("enableInMemoryStats", fmt.Sprintf("%t", settings.EnableInMemoryStats))
+	formData.Set("maxStatFileDays", fmt.Sprintf("%d", settings.MaxStatFileDays))
+
+	requestURL := fmt.Sprintf("%s%s/set", c.apiURL, SETTINGS_URL)
+	body := strings.NewReader(formData.Encode())
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, body)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create HTTP request")
+	}
+	httpReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	httpResp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, errors.Wrap(err, "HTTP request error")
+	}
+	defer func() {
+		_ = httpResp.Body.Close()
+	}()
+
+	var apiResp struct {
+		Status       string            `json:"status"`
+		ErrorMessage string            `json:"errorMessage,omitempty"`
+		Response     model.DNSSettings `json:"response"`
+	}
+
+	if err := json.NewDecoder(httpResp.Body).Decode(&apiResp); err != nil {
+		return nil, errors.Wrap(err, "cannot decode JSON response")
+	}
+
+	if apiResp.Status != StatusOK {
+		return nil, fmt.Errorf("API error: %s", apiResp.ErrorMessage)
+	}
+
+	return &apiResp.Response, nil
 }
